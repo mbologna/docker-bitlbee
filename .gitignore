@@ -1,0 +1,2 @@
+var/lib/bitlbee/*
+!var/lib/bitlbee/.gitkeep
