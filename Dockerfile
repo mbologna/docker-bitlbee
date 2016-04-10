@@ -1,9 +1,9 @@
-FROM debian:latest
+FROM buildpack-deps:jessie-curl
 MAINTAINER Michele Bologna <michele.bologna@gmail.com>
 
-ENV VERSION=3.4.1
+ENV VERSION=3.4.2
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates autoconf automake curl gettext gcc libtool make dpkg-dev libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev && \
+RUN apt-get update && apt-get install -y --no-install-recommends autoconf automake gettext gcc libtool make dpkg-dev libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev && \
 cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.1.tar.gz && \
@@ -26,7 +26,7 @@ cd bitlbee-facebook-1.0.0 && \
 ./autogen.sh && \
 make && \
 make install && \
-apt-get autoremove -y --purge autoconf automake curl gcc libtool make dpkg-dev && \
+apt-get autoremove -y --purge autoconf automake gcc libtool make dpkg-dev && \
 apt-get clean && \
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/* && \
 cd && \
@@ -36,8 +36,8 @@ rm -fr v1.0.0.tar.gz bitlbee-facebook-* && \
 mkdir -p /var/lib/bitlbee && \
 chown -R daemon:daemon /var/lib/bitlbee* # dup: otherwise it won't be chown'ed when using volumes
 
-ADD etc/bitlbee/bitlbee.conf /usr/local/etc/bitlbee/bitlbee.conf
-ADD etc/bitlbee/motd.txt /usr/local/etc/bitlbee/motd.txt
+COPY etc/bitlbee/bitlbee.conf /usr/local/etc/bitlbee/bitlbee.conf
+COPY etc/bitlbee/motd.txt /usr/local/etc/bitlbee/motd.txt
 
 VOLUME ["/var/lib/bitlbee"]
 RUN touch /var/run/bitlbee.pid && \
