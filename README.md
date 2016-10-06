@@ -3,7 +3,7 @@ This repository contains **Dockerfile** of [*bitlbee*](https://github.com/bitlbe
 
 ## Base Docker image
 
-* fedora/latest
+* buildpack-deps/jessie-curl
 
 ## Installation
 
