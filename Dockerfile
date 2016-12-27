@@ -6,7 +6,7 @@ ENV VERSION=3.4.2
 RUN apt-get update && apt-get install -y --no-install-recommends autoconf automake gettext gcc libtool make dpkg-dev libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev && \
 cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
-curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.1.tar.gz && \
+curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.2.2.tar.gz && \
 curl -LO# https://github.com/jgeboski/bitlbee-facebook/archive/v1.0.0.tar.gz && \
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
@@ -16,8 +16,8 @@ make install && \
 make install-etc && \
 make install-dev && \
 cd && \
-tar zxvf 1.1.tar.gz && \
-cd skype4pidgin-1.1/skypeweb && \
+tar zxvf 1.2.2.tar.gz && \
+cd skype4pidgin-1.2.2/skypeweb && \
 make && \
 make install && \
 cd && \
@@ -31,7 +31,7 @@ apt-get clean && \
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/* && \
 cd && \
 rm -fr bitlbee-$VERSION* && \
-rm -fr 1.1.tar.gz skype4pidgin-* && \
+rm -fr 1.2.2.tar.gz skype4pidgin-* && \
 rm -fr v1.0.0.tar.gz bitlbee-facebook-* && \
 mkdir -p /var/lib/bitlbee && \
 chown -R daemon:daemon /var/lib/bitlbee* # dup: otherwise it won't be chown'ed when using volumes
