@@ -3,11 +3,12 @@ MAINTAINER Michele Bologna <michele.bologna@gmail.com>
 
 ENV VERSION=3.5.1
 
-RUN apt-get update && apt-get install -y --no-install-recommends autoconf automake gettext gcc libtool make dpkg-dev libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev && \
+RUN apt-get update && apt-get install -y --no-install-recommends autoconf automake gettext gcc libtool make dpkg-dev libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev libprotobuf-c-dev protobuf-c-compiler mercurial && \
 cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.4.tar.gz && \
 curl -LO# https://github.com/jgeboski/bitlbee-facebook/archive/v1.1.2.tar.gz && \
+hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
 ./configure --jabber=1 --otr=1 --purple=1 && \
@@ -26,13 +27,18 @@ cd bitlbee-facebook-1.1.2 && \
 ./autogen.sh && \
 make && \
 make install && \
-apt-get autoremove -y --purge autoconf automake gcc libtool make dpkg-dev && \
+cd && \
+cd purple-hangouts && \
+make && \
+make install && \
+apt-get autoremove -y --purge autoconf automake gcc libtool make dpkg-dev mercurial && \
 apt-get clean && \
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/* && \
 cd && \
 rm -fr bitlbee-$VERSION* && \
 rm -fr 1.4.tar.gz skype4pidgin-* && \
 rm -fr v1.1.2.tar.gz bitlbee-facebook-* && \
+rm -fr purple-hangouts && \
 mkdir -p /var/lib/bitlbee && \
 chown -R daemon:daemon /var/lib/bitlbee* # dup: otherwise it won't be chown'ed when using volumes
 
