@@ -50,7 +50,7 @@ cd bitlbee-mastodon && \
 make && \
 make install && \
 # cleanup
-apt-get autoremove -y --purge autoconf automake gcc libtool make dpkg-dev mercurial && \
+apt-get autoremove -y --purge autoconf automake gcc libtool make dpkg-dev mercurial git && \
 apt-get clean && \
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/* && \
 cd && \
