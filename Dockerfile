@@ -8,7 +8,7 @@ cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.5.tar.gz && \
 curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.3.1/telegram-purple_1.3.1.orig.tar.gz && \
-curl -LO# https://github.com/jgeboski/bitlbee-facebook/archive/v1.1.2.tar.gz && \
+curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.1.2.tar.gz && \
 hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon && \
 tar zxvf bitlbee-$VERSION.tar.gz && \
