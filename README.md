@@ -3,7 +3,7 @@ This repository contains **Dockerfile** of [*bitlbee*](https://github.com/bitlbe
 
 ## Base Docker image
 
-* buildpack-deps/jessie-curl
+* buildpack-deps/stretch-curl
 
 ## Installation
 
