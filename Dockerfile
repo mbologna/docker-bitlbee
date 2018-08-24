@@ -6,7 +6,7 @@ ENV VERSION=3.5.1
 RUN apt-get update && apt-get install -y --no-install-recommends autoconf automake gettext gcc libtool make dpkg-dev libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev libprotobuf-c-dev protobuf-c-compiler mercurial libgcrypt20 libgcrypt20-dev libwebp-dev git && \
 cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
-curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.4.tar.gz && \
+curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.5.tar.gz && \
 curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.3.1/telegram-purple_1.3.1.orig.tar.gz && \
 curl -LO# https://github.com/jgeboski/bitlbee-facebook/archive/v1.1.2.tar.gz && \
 hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
@@ -20,8 +20,8 @@ make install-etc && \
 make install-dev && \
 # install skypeweb
 cd && \
-tar zxvf 1.4.tar.gz && \
-cd skype4pidgin-1.4/skypeweb && \
+tar zxvf 1.5.tar.gz && \
+cd skype4pidgin-1.5/skypeweb && \
 make && \
 make install && \
 # install telegram purple
@@ -55,7 +55,7 @@ apt-get clean && \
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/* && \
 cd && \
 rm -fr bitlbee-$VERSION* && \
-rm -fr 1.4.tar.gz skype4pidgin-* && \
+rm -fr 1.5.tar.gz skype4pidgin-* && \
 rm -fr v1.1.2.tar.gz bitlbee-facebook-* && \
 rm -fr purple-hangouts && \
 rm -fr telegram-purple_1.3.1.orig.tar.gz && \
@@ -75,4 +75,3 @@ RUN touch /var/run/bitlbee.pid && \
 USER daemon
 EXPOSE 6667
 CMD ["/usr/local/sbin/bitlbee", "-c", "/usr/local/etc/bitlbee/bitlbee.conf", "-n", "-u", "daemon"]
-
