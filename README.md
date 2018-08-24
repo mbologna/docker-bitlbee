@@ -15,17 +15,25 @@ This repository contains **Dockerfile** of [*bitlbee*](https://github.com/bitlbe
 
 ## Usage
 
-### (optional and only for those who build the image) configure bitlbee
+1. (optional and only for those who build the image) configure bitlbee
 
 customize etc/bitlbee/bitlbee.conf to suit your needs
 
-### run bitlbee
+2. run bitlbee via:
 
-`docker run -d --name bitlbee -p 16667:6667 --restart=always mbologna/docker-bitlbee`
+    a. [Docker Compose](https://docs.docker.com/compose/install/):
 
-### run bitlbee with persistent config file (`username.xml`)
+        `docker-compose up`
 
-`docker run -d --name bitlbee -p 16667:6667 --restart=always -v <data-dir>:/var/lib/bitlbee mbologna/docker-bitlbee`
+    b. or via Docker:
+
+        - without persistent configuration:
+
+            `docker run -d --name bitlbee -p 16667:6667 --restart=always mbologna/docker-bitlbee`
+
+        - with persistent configuration store in volume:
+
+            `docker run -d --name bitlbee -p 16667:6667 --restart=always -v <data-dir>:/var/lib/bitlbee mbologna/docker-bitlbee`
 
 ## Contributing
 
