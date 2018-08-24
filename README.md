@@ -1,6 +1,16 @@
 # bitlbee Dockerfile
 This repository contains **Dockerfile** of [*bitlbee*](https://github.com/bitlbee/bitlbee), for [Docker](https://www.docker.com/)'s [automated build](https://registry.hub.docker.com/u/mbologna/bitlbee/) published to the public [Docker Hub Registry](https://registry.hub.docker.com/).
 
+## Features
+
+In addition to the [Bitlbee's out of the box supported protocols](https://wiki.bitlbee.org/), this container also supports the following protocols:
+
+- Skype via [skype4pidgin](https://github.com/EionRobb/skype4pidgin)
+- Telegram via [telegram-purple](https://github.com/majn/telegram-purple)
+- Facebook (MQTT) via [bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook)
+- Google Hangouts via [purple-hangouts](https://bitbucket.org/EionRobb/purple-hangouts)
+- Mastodon via [bitlbee-mastodon](https://alexschroeder.ch/software/Bitlbee_Mastodon)
+
 ## Base Docker image
 
 * buildpack-deps/stretch-curl
