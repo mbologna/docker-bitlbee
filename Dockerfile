@@ -19,6 +19,7 @@ curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.1.2.tar.gz && \
 hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon && \
 hg clone https://bitbucket.org/EionRobb/purple-rocketchat && \
+curl -LO# https://github.com/sm00th/bitlbee-discord/archive/0.4.2.tar.gz && \
 # build bitlbee
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
@@ -63,6 +64,14 @@ cd && \
 cd purple-rocketchat && \
 make && \
 make install && \
+# install bitlbee-discord
+cd && \
+tar zxvf 0.4.2.tar.gz && \
+cd bitlbee-discord-0.4.2/ && \
+./autogen.sh && \
+./configure && \
+make && \
+make install && \
 # libtool --finish
 libtool --finish /usr/local/lib/bitlbee && \
 # cleanup
@@ -77,6 +86,7 @@ rm -fr v1.1.2.tar.gz bitlbee-facebook-* && \
 rm -fr purple-hangouts && \
 rm -rf bitlbee-mastodon && \
 rm -rf purple-rocketchat && \
+rm -fr bitlbee-discord-0.4.2/ 0.4.2.tar.gz && \
 # add user bitlbee
 adduser --system --home /var/lib/bitlbee --disabled-password --disabled-login --shell /usr/sbin/nologin bitlbee && \
 touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
