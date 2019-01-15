@@ -11,6 +11,7 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 - Google Hangouts via [purple-hangouts](https://bitbucket.org/EionRobb/purple-hangouts)
 - Mastodon via [bitlbee-mastodon](https://alexschroeder.ch/software/Bitlbee_Mastodon)
 - Rocket.Chat via [purple-rocketchat](https://bitbucket.org/EionRobb/purple-rocketchat/src/default/)
+- Discord via [bitlbee-discord](https://github.com/sm00th/bitlbee-discord/)
 
 ## Base Docker image
 
