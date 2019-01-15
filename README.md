@@ -13,6 +13,7 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 - Rocket.Chat via [purple-rocketchat](https://bitbucket.org/EionRobb/purple-rocketchat/src/default/)
 - Discord via [bitlbee-discord](https://github.com/sm00th/bitlbee-discord/)
 - Slack via [slack-libpurple](https://github.com/dylex/slack-libpurple)
+- Steam via [bitlbee-steam](https://github.com/bitlbee/bitlbee-steam)
 
 ## Base Docker image
 

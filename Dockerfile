@@ -21,6 +21,7 @@ git clone https://alexschroeder.ch/cgit/bitlbee-mastodon && \
 hg clone https://bitbucket.org/EionRobb/purple-rocketchat && \
 curl -LO# https://github.com/sm00th/bitlbee-discord/archive/0.4.2.tar.gz && \
 git clone https://github.com/dylex/slack-libpurple.git && \
+git clone https://github.com/jgeboski/bitlbee-steam.git && \
 # build bitlbee
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
@@ -77,6 +78,12 @@ make install && \
 cd && \
 cd slack-libpurple && \
 make install && \
+# install bitlbee-steam
+cd && \
+cd bitlbee-steam && \
+./autogen.sh && \
+make && \
+make install && \
 # libtool --finish
 libtool --finish /usr/local/lib/bitlbee && \
 # cleanup
@@ -93,6 +100,7 @@ rm -rf bitlbee-mastodon && \
 rm -rf purple-rocketchat && \
 rm -fr bitlbee-discord-0.4.2/ 0.4.2.tar.gz && \
 rm -fr slack-libpurple && \
+rm -fr bitlbee-steam && \
 # add user bitlbee
 adduser --system --home /var/lib/bitlbee --disabled-password --disabled-login --shell /usr/sbin/nologin bitlbee && \
 touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
