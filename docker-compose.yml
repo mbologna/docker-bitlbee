@@ -1,13 +1,16 @@
-version: "3.3"
+version: "2.0"
 
 services:
   app:
     image: mbologna/docker-bitlbee
+    container_name: bitlbee
     restart: always
     ports:
       - "16667:6667"
+    network_mode: bridge
     volumes:
-      - data:/var/lib/bitlbee
+      - ./etc/bitlbee:/usr/local/etc/bitlbee
+      - bitlbee_data:/var/lib/bitlbee
 
 volumes:
-  data:
+  bitlbee_data:

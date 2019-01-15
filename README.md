@@ -25,11 +25,9 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 
 ## Usage
 
-1. (optional and only for those who build the image) configure bitlbee
+1. (Optional) Customize bitlbee configuration file in `etc/bitlbee/bitlbee.conf`
 
-customize etc/bitlbee/bitlbee.conf to suit your needs
-
-2. run bitlbee via:
+2. Run bitlbee via:
 
     a. [Docker Compose](https://docs.docker.com/compose/install/):
 
@@ -37,13 +35,8 @@ customize etc/bitlbee/bitlbee.conf to suit your needs
 
     b. or via Docker:
 
-    - without persistent configuration:
-
-          docker run -d --name bitlbee -p 16667:6667 --restart=always mbologna/docker-bitlbee
-
-    - with persistent configuration store in volume:
-
-          docker run -d --name bitlbee -p 16667:6667 --restart=always -v <data-dir>:/var/lib/bitlbee mbologna/docker-bitlbee
+        docker volume create bitlbee_data
+        docker run -d --name bitlbee -p 16667:6667 --restart=always -v $PWD/etc/bitlbee:/usr/local/etc/bitlbee mbologna/docker-bitlbee
 
 ## Contributing
 
