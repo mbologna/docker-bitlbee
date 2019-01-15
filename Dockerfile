@@ -5,7 +5,12 @@ LABEL version="mb-3.5.1-20190115"
 
 ENV VERSION=3.5.1
 
-RUN apt-get update && apt-get install -y --no-install-recommends autoconf automake gettext gcc libtool make dpkg-dev libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev libprotobuf-c-dev protobuf-c-compiler mercurial libgcrypt20 libgcrypt20-dev libwebp-dev git && \
+RUN apt-get update && \
+apt-get install -y --no-install-recommends autoconf automake gettext gcc git libtool make dpkg-dev \
+libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev \
+libjson-glib-dev libprotobuf-c-dev protobuf-c-compiler \
+mercurial libgcrypt20 libgcrypt20-dev \
+libmarkdown2-dev libwebp-dev libtool-bin && \
 cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.5.tar.gz && \
