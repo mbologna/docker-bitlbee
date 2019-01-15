@@ -19,14 +19,6 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 
 * buildpack-deps/stretch-curl
 
-## Installation
-
-1. Install [Docker](https://www.docker.com/).
-
-2. Download [automated build](https://registry.hub.docker.com/u/mbologna/docker-bitlbee/) from public [Docker Hub Registry](https://registry.hub.docker.com/): `docker pull mbologna/docker-bitlbee`
-
-   (alternatively, you can build an image from Dockerfile: `docker build -t="mbologna/docker-bitlbee" github.com/mbologna/docker-bitlbee`)
-
 ## Usage
 
 1. (Optional) Customize bitlbee configuration file in `etc/bitlbee/bitlbee.conf`
@@ -49,3 +41,7 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
+
+## Building
+
+You can build a bitlbee image from Dockerfile: `docker build -t="mbologna/docker-bitlbee" github.com/mbologna/docker-bitlbee`
