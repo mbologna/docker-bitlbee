@@ -55,6 +55,8 @@ cd bitlbee-mastodon && \
 ./configure --prefix=/usr && \
 make && \
 make install && \
+# libtool --finish
+libtool --finish /usr/local/lib/bitlbee && \
 # cleanup
 apt-get autoremove -y --purge autoconf automake gcc libtool make dpkg-dev mercurial git && \
 apt-get clean && \
