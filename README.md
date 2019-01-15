@@ -12,6 +12,7 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 - Mastodon via [bitlbee-mastodon](https://alexschroeder.ch/software/Bitlbee_Mastodon)
 - Rocket.Chat via [purple-rocketchat](https://bitbucket.org/EionRobb/purple-rocketchat/src/default/)
 - Discord via [bitlbee-discord](https://github.com/sm00th/bitlbee-discord/)
+- Slack via [slack-libpurple](https://github.com/dylex/slack-libpurple)
 
 ## Base Docker image
 
