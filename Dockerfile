@@ -54,7 +54,7 @@ make install && \
 cd && \
 cd bitlbee-mastodon && \
 ./autogen.sh && \
-./configure --prefix=/usr && \
+./configure && \
 make && \
 make install && \
 # libtool --finish
@@ -66,10 +66,9 @@ rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/* && \
 cd && \
 rm -fr bitlbee-$VERSION* && \
 rm -fr 1.5.tar.gz skype4pidgin-* && \
+rm -fr telegram-purple* && \
 rm -fr v1.1.2.tar.gz bitlbee-facebook-* && \
 rm -fr purple-hangouts && \
-rm -fr telegram-purple_1.3.1.orig.tar.gz && \
-rm -fr telegram-purple && \
 rm -rf bitlbee-mastodon && \
 mkdir -p /var/lib/bitlbee && \
 chown -R daemon:daemon /var/lib/bitlbee* # dup: otherwise it won't be chown'ed when using volumes
