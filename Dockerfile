@@ -1,5 +1,7 @@
 FROM buildpack-deps:stretch-curl
-MAINTAINER Michele Bologna <michele.bologna@gmail.com>
+LABEL maintainer="Michele Bologna <michele.bologna@gmail.com>"
+LABEL name="BitlBee Docker container by Michele Bologna"
+LABEL version="mb-3.5.1-20190115"
 
 ENV VERSION=3.5.1
 
