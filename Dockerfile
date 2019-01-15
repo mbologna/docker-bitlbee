@@ -70,17 +70,12 @@ rm -fr telegram-purple* && \
 rm -fr v1.1.2.tar.gz bitlbee-facebook-* && \
 rm -fr purple-hangouts && \
 rm -rf bitlbee-mastodon && \
-mkdir -p /var/lib/bitlbee && \
-chown -R daemon:daemon /var/lib/bitlbee* # dup: otherwise it won't be chown'ed when using volumes
+# add user bitlbee
+adduser --system --home /var/lib/bitlbee --disabled-password --disabled-login --shell /usr/sbin/nologin bitlbee && \
+touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
 
-COPY etc/bitlbee/bitlbee.conf /usr/local/etc/bitlbee/bitlbee.conf
-COPY etc/bitlbee/motd.txt /usr/local/etc/bitlbee/motd.txt
-
+VOLUME ["/usr/local/etc/bitlbee"]
 VOLUME ["/var/lib/bitlbee"]
-RUN touch /var/run/bitlbee.pid && \
-	chown daemon:daemon /var/run/bitlbee.pid && \
-	chown -R daemon:daemon /usr/local/etc/* && \
-	chown -R daemon:daemon /var/lib/bitlbee*  # dup: otherwise it won't be chown'ed when using volumes
-USER daemon
 EXPOSE 6667
-CMD ["/usr/local/sbin/bitlbee", "-c", "/usr/local/etc/bitlbee/bitlbee.conf", "-n", "-u", "daemon"]
+CMD ["/usr/local/sbin/bitlbee", "-c", "/usr/local/etc/bitlbee/bitlbee.conf", "-n", "-v"]
+USER bitlbee
