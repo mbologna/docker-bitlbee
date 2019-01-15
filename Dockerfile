@@ -18,6 +18,7 @@ curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.3.1/teleg
 curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.1.2.tar.gz && \
 hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon && \
+# build bitlbee
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
 ./configure --jabber=1 --otr=1 --purple=1 && \
@@ -30,7 +31,7 @@ tar zxvf 1.5.tar.gz && \
 cd skype4pidgin-1.5/skypeweb && \
 make && \
 make install && \
-# install telegram purple
+# install telegram-purple
 cd && \
 tar zxvf telegram-purple_1.3.1.orig.tar.gz && \
 cd telegram-purple && \
@@ -44,6 +45,7 @@ cd bitlbee-facebook-1.1.2 && \
 ./autogen.sh && \
 make && \
 make install && \
+# install purple-hangouts
 cd && \
 cd purple-hangouts && \
 make && \
