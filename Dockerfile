@@ -23,7 +23,6 @@ cd bitlbee-$VERSION && \
 ./configure --jabber=1 --otr=1 --purple=1 && \
 make && \
 make install && \
-make install-etc && \
 make install-dev && \
 # install skypeweb
 cd && \
