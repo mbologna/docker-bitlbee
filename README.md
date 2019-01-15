@@ -10,6 +10,7 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 - Facebook (MQTT) via [bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook)
 - Google Hangouts via [purple-hangouts](https://bitbucket.org/EionRobb/purple-hangouts)
 - Mastodon via [bitlbee-mastodon](https://alexschroeder.ch/software/Bitlbee_Mastodon)
+- Rocket.Chat via [purple-rocketchat](https://bitbucket.org/EionRobb/purple-rocketchat/src/default/)
 
 ## Base Docker image
 

@@ -18,6 +18,7 @@ curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.3.1/teleg
 curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.1.2.tar.gz && \
 hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon && \
+hg clone https://bitbucket.org/EionRobb/purple-rocketchat && \
 # build bitlbee
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
@@ -57,6 +58,11 @@ cd bitlbee-mastodon && \
 ./configure && \
 make && \
 make install && \
+# install purple-rocketchat
+cd && \
+cd purple-rocketchat && \
+make && \
+make install && \
 # libtool --finish
 libtool --finish /usr/local/lib/bitlbee && \
 # cleanup
@@ -70,6 +76,7 @@ rm -fr telegram-purple* && \
 rm -fr v1.1.2.tar.gz bitlbee-facebook-* && \
 rm -fr purple-hangouts && \
 rm -rf bitlbee-mastodon && \
+rm -rf purple-rocketchat && \
 # add user bitlbee
 adduser --system --home /var/lib/bitlbee --disabled-password --disabled-login --shell /usr/sbin/nologin bitlbee && \
 touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
