@@ -21,9 +21,13 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 
 ## Usage
 
-1. (Optional) Customize bitlbee configuration file in `etc/bitlbee/bitlbee.conf`
+1. Clone the project:
 
-2. Run bitlbee via:
+       git clone https://www.github.com/mbologna/docker-bitlbee
+
+2. (Optional) Customize bitlbee configuration file in `etc/bitlbee/bitlbee.conf`
+
+3. Run bitlbee via:
 
     a. [Docker Compose](https://docs.docker.com/compose/install/):
 
