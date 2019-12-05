@@ -14,6 +14,7 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 - Discord via [bitlbee-discord](https://github.com/sm00th/bitlbee-discord/)
 - Slack via [slack-libpurple](https://github.com/dylex/slack-libpurple)
 - Steam via [bitlbee-steam](https://github.com/bitlbee/bitlbee-steam)
+- Matrix via [purple-matrix](https://github.com/matrix-org/purple-matrix)
 
 ## Base Docker image
 
