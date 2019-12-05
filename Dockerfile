@@ -14,8 +14,7 @@ libmarkdown2-dev libwebp-dev libtool-bin && \
 cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.5.tar.gz && \
-curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.3.1/telegram-purple_1.3.1.orig.tar.gz && \
-curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.1.2.tar.gz && \
+curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.0.tar.gz && \
 hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon && \
 hg clone https://bitbucket.org/EionRobb/purple-rocketchat && \
@@ -44,8 +43,8 @@ make && \
 make install && \
 # install bitlbee-facebook
 cd && \
-tar zxvf v1.1.2.tar.gz && \
-cd bitlbee-facebook-1.1.2 && \
+tar zxvf v1.2.0.tar.gz && \
+cd bitlbee-facebook-1.2.0 && \
 ./autogen.sh && \
 make && \
 make install && \
@@ -94,7 +93,7 @@ cd && \
 rm -fr bitlbee-$VERSION* && \
 rm -fr 1.5.tar.gz skype4pidgin-* && \
 rm -fr telegram-purple* && \
-rm -fr v1.1.2.tar.gz bitlbee-facebook-* && \
+rm -fr v1.2.0.tar.gz bitlbee-facebook-* && \
 rm -fr purple-hangouts && \
 rm -rf bitlbee-mastodon && \
 rm -rf purple-rocketchat && \
