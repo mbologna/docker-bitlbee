@@ -6,11 +6,10 @@ LABEL version="mb-3.6-20191205"
 ENV VERSION=3.6
 
 RUN apt-get update && \
-apt-get install -y --no-install-recommends autoconf automake gettext gcc git libtool make dpkg-dev \
-libglib2.0-dev libotr5-dev libpurple-dev libgnutls28-dev \
-libjson-glib-dev libprotobuf-c-dev protobuf-c-compiler \
-mercurial libgcrypt20 libgcrypt20-dev \
-libmarkdown2-dev libwebp-dev libtool-bin && \
+apt-get install -y --no-install-recommends autoconf automake build-essential gettext gcc git libtool make mercurial \
+libglib2.0-dev libhttp-parser-dev libotr5-dev libpurple-dev libgnutls28-dev \
+libjson-glib-dev libpng-dev libolm-dev libprotobuf-c-dev protobuf-c-compiler \
+libgcrypt20-dev libmarkdown2-dev libpurple-dev libsqlite3-dev libwebp-dev libtool-bin && \
 cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.5.tar.gz && \
@@ -22,6 +21,7 @@ hg clone https://bitbucket.org/EionRobb/purple-rocketchat && \
 curl -LO# https://github.com/sm00th/bitlbee-discord/archive/0.4.2.tar.gz && \
 git clone https://github.com/dylex/slack-libpurple.git && \
 git clone https://github.com/jgeboski/bitlbee-steam.git && \
+git clone https://github.com/matrix-org/purple-matrix.git && \
 # build bitlbee
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
@@ -84,10 +84,15 @@ cd bitlbee-steam && \
 ./autogen.sh && \
 make && \
 make install && \
+# install purple matrix
+cd && \
+cd purple-matrix && \
+make && \
+make install && \
 # libtool --finish
 libtool --finish /usr/local/lib/bitlbee && \
 # cleanup
-apt-get autoremove -y --purge autoconf automake gcc libtool make dpkg-dev mercurial git && \
+apt-get autoremove -y --purge autoconf automake build-essential gcc libtool make dpkg-dev mercurial git libsqlite3-dev && \
 apt-get clean && \
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/* && \
 cd && \
@@ -101,6 +106,7 @@ rm -rf purple-rocketchat && \
 rm -fr bitlbee-discord-0.4.2/ 0.4.2.tar.gz && \
 rm -fr slack-libpurple && \
 rm -fr bitlbee-steam && \
+rm -fr purple-matrix && \
 # add user bitlbee
 adduser --system --home /var/lib/bitlbee --disabled-password --disabled-login --shell /usr/sbin/nologin bitlbee && \
 touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
