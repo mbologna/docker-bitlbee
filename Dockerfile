@@ -14,6 +14,7 @@ libmarkdown2-dev libwebp-dev libtool-bin && \
 cd && \
 curl -LO# https://get.bitlbee.org/src/bitlbee-$VERSION.tar.gz && \
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.5.tar.gz && \
+curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.4.2/telegram-purple_1.4.2.orig.tar.gz && \
 curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.0.tar.gz && \
 hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon && \
@@ -36,7 +37,7 @@ make && \
 make install && \
 # install telegram-purple
 cd && \
-tar zxvf telegram-purple_1.3.1.orig.tar.gz && \
+tar zxvf telegram-purple_1.4.2.orig.tar.gz && \
 cd telegram-purple && \
 ./configure && \
 make && \
