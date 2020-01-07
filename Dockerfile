@@ -1,12 +1,11 @@
-FROM buildpack-deps:stable-curl
+FROM buildpack-deps:stable-scm
 LABEL maintainer="Michele Bologna <github@michelebologna.net>"
 LABEL name="BitlBee Docker container by Michele Bologna"
 LABEL version="mb-3.6-20191205"
 
 ENV VERSION=3.6
 
-RUN apt-get update && \
-apt-get install -y --no-install-recommends autoconf automake build-essential gettext gcc git libtool make mercurial \
+apt install -y --no-install-recommends autoconf automake build-essential gettext gcc libtool make \
 libglib2.0-dev libhttp-parser-dev libotr5-dev libpurple-dev libgnutls28-dev \
 libjson-glib-dev libpng-dev libolm-dev libprotobuf-c-dev protobuf-c-compiler \
 libgcrypt20-dev libmarkdown2-dev libpurple-dev libsqlite3-dev libwebp-dev libtool-bin && \
