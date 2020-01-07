@@ -84,7 +84,7 @@ cd bitlbee-steam && \
 ./autogen.sh && \
 make && \
 make install && \
-# install purple matrix
+# install purple-matrix
 cd && \
 cd purple-matrix && \
 make && \
