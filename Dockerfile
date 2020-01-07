@@ -5,6 +5,7 @@ LABEL version="mb-3.6-20200107"
 
 ENV VERSION=3.6
 
+RUN apt update && \
 apt install -y --no-install-recommends autoconf automake build-essential gettext gcc libtool make \
 libglib2.0-dev libhttp-parser-dev libotr5-dev libpurple-dev libgnutls28-dev \
 libjson-glib-dev libpng-dev libolm-dev libprotobuf-c-dev protobuf-c-compiler \
@@ -97,8 +98,7 @@ make install && \
 # libtool --finish
 libtool --finish /usr/local/lib/bitlbee && \
 # cleanup
-apt-get autoremove -y --purge autoconf automake build-essential gcc libtool make dpkg-dev mercurial git libsqlite3-dev && \
-apt-get clean && \
+apt clean && \
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/* && \
 cd && \
 rm -fr bitlbee-$VERSION* && \
