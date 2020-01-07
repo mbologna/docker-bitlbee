@@ -22,6 +22,7 @@ curl -LO# https://github.com/sm00th/bitlbee-discord/archive/0.4.2.tar.gz && \
 git clone https://github.com/dylex/slack-libpurple.git && \
 git clone https://github.com/jgeboski/bitlbee-steam.git && \
 git clone https://github.com/matrix-org/purple-matrix.git && \
+git clone https://github.com/EionRobb/purple-mattermost.git && \
 # build bitlbee
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
@@ -89,6 +90,11 @@ cd && \
 cd purple-matrix && \
 make && \
 make install && \
+# install purple-mattermost
+cd && \
+cd purple-mattermost && \
+make && \
+make install && \
 # libtool --finish
 libtool --finish /usr/local/lib/bitlbee && \
 # cleanup
@@ -107,6 +113,7 @@ rm -fr bitlbee-discord-0.4.2/ 0.4.2.tar.gz && \
 rm -fr slack-libpurple && \
 rm -fr bitlbee-steam && \
 rm -fr purple-matrix && \
+rm -fr purple-mattermost && \
 # add user bitlbee
 adduser --system --home /var/lib/bitlbee --disabled-password --disabled-login --shell /usr/sbin/nologin bitlbee && \
 touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
