@@ -23,6 +23,7 @@ git clone https://github.com/dylex/slack-libpurple.git && \
 git clone https://github.com/jgeboski/bitlbee-steam.git && \
 git clone https://github.com/matrix-org/purple-matrix.git && \
 git clone https://github.com/EionRobb/purple-mattermost.git && \
+git clone https://github.com/EionRobb/purple-instagram.git && \
 # build bitlbee
 tar zxvf bitlbee-$VERSION.tar.gz && \
 cd bitlbee-$VERSION && \
@@ -95,6 +96,11 @@ cd && \
 cd purple-mattermost && \
 make && \
 make install && \
+# install purple-instagram
+cd && \
+cd purple-instagram && \
+make && \
+make install && \
 # libtool --finish
 libtool --finish /usr/local/lib/bitlbee && \
 # cleanup
@@ -114,6 +120,7 @@ rm -fr slack-libpurple && \
 rm -fr bitlbee-steam && \
 rm -fr purple-matrix && \
 rm -fr purple-mattermost && \
+rm -fr purple-instagram && \
 # add user bitlbee
 adduser --system --home /var/lib/bitlbee --disabled-password --disabled-login --shell /usr/sbin/nologin bitlbee && \
 touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
