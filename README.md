@@ -16,6 +16,7 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 - Steam via [bitlbee-steam](https://github.com/bitlbee/bitlbee-steam)
 - Matrix via [purple-matrix](https://github.com/matrix-org/purple-matrix)
 - Mattermost via [puple-mattermost](https://github.com/EionRobb/purple-mattermost)
+- Instagram via [purple-instagram](https://github.com/EionRobb/purple-instagram)
 
 ## Base Docker image
 
