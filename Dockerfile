@@ -59,7 +59,7 @@ make install && \
 # install bitlbee-mastodon
 cd && \
 cd bitlbee-mastodon && \
-./autogen.sh && \
+sh autogen.sh && \
 ./configure && \
 make && \
 make install && \
