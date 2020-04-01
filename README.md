@@ -1,6 +1,3 @@
-# bitlbee Dockerfile
-[This repository](https://github.com/mbologna/docker-bitlbee/) contains **Dockerfile** of [*bitlbee*](https://github.com/bitlbee/bitlbee), for [Docker](https://www.docker.com/)'s [automated build](https://registry.hub.docker.com/u/mbologna/docker-bitlbee/) published to the public [Docker Hub Registry](https://registry.hub.docker.com/).
-
 ## Features
 
 In addition to the [Bitlbee's out of the box supported protocols](https://wiki.bitlbee.org/), this container also supports the following protocols:
@@ -17,10 +14,6 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 - Matrix via [purple-matrix](https://github.com/matrix-org/purple-matrix)
 - Mattermost via [puple-mattermost](https://github.com/EionRobb/purple-mattermost)
 - Instagram via [purple-instagram](https://github.com/EionRobb/purple-instagram)
-
-## Base Docker image
-
-* buildpack-deps/stretch-curl
 
 ## Usage
 
@@ -40,14 +33,6 @@ In addition to the [Bitlbee's out of the box supported protocols](https://wiki.b
 
         docker volume create bitlbee_data
         docker run -d --name bitlbee -p 16667:6667 --restart=always -v $PWD/etc/bitlbee:/usr/local/etc/bitlbee mbologna/docker-bitlbee
-
-## Contributing
-
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
 
 ## Building
 
