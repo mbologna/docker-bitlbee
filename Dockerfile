@@ -18,7 +18,7 @@ curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.0.tar.gz && \
 hg clone https://bitbucket.org/EionRobb/purple-hangouts/ && \
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon && \
 hg clone https://bitbucket.org/EionRobb/purple-rocketchat && \
-curl -LO# https://github.com/sm00th/bitlbee-discord/archive/0.4.2.tar.gz && \
+curl -LO# https://github.com/sm00th/bitlbee-discord/archive/0.4.3.tar.gz && \
 git clone https://github.com/dylex/slack-libpurple.git && \
 git clone https://github.com/jgeboski/bitlbee-steam.git && \
 git clone https://github.com/matrix-org/purple-matrix.git && \
@@ -70,8 +70,8 @@ make && \
 make install && \
 # install bitlbee-discord
 cd && \
-tar zxvf 0.4.2.tar.gz && \
-cd bitlbee-discord-0.4.2/ && \
+tar zxvf 0.4.3.tar.gz && \
+cd bitlbee-discord-0.4.3/ && \
 ./autogen.sh && \
 ./configure && \
 make && \
@@ -115,7 +115,7 @@ rm -fr v1.2.0.tar.gz bitlbee-facebook-* && \
 rm -fr purple-hangouts && \
 rm -rf bitlbee-mastodon && \
 rm -rf purple-rocketchat && \
-rm -fr bitlbee-discord-0.4.2/ 0.4.2.tar.gz && \
+rm -fr bitlbee-discord-0.4.3/ 0.4.3.tar.gz && \
 rm -fr slack-libpurple && \
 rm -fr bitlbee-steam && \
 rm -fr purple-matrix && \
