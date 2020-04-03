@@ -2,6 +2,7 @@ version: "2.0"
 
 services:
   app:
+    build: .
     image: mbologna/docker-bitlbee
     container_name: bitlbee
     restart: always
