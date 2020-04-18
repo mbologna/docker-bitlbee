@@ -5,7 +5,6 @@ LABEL version="mb-3.6-20200107"
 
 ENV BITLBEE_VERSION=3.6
 
-WORKDIR /root
 COPY build.sh /root
 RUN /root/build.sh
 
