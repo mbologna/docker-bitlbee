@@ -1,17 +1,35 @@
 version: "2.0"
 
 services:
-  app:
+  bitlbee:
     build: .
     image: mbologna/docker-bitlbee
     container_name: bitlbee
     restart: always
     ports:
       - "16667:6667"
-    network_mode: bridge
+    networks:
+      - bitlbee
     volumes:
       - ./etc/bitlbee:/usr/local/etc/bitlbee
       - bitlbee_data:/var/lib/bitlbee
+  stunnel:
+    image: dweomer/stunnel
+    container_name: bitlbee-stunnel
+    restart: always
+    networks:
+      - bitlbee
+    ports:
+      - "16697:6697"
+    environment:
+      - STUNNEL_SERVICE=bitlbee-stunnel
+      - STUNNEL_ACCEPT=6697
+      - STUNNEL_CONNECT=bitlbee:6667
+    depends_on:
+      - bitlbee
 
 volumes:
   bitlbee_data:
+
+networks:
+  bitlbee:
