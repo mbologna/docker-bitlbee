@@ -11,9 +11,9 @@ curl -LO# https://get.bitlbee.org/src/bitlbee-$BITLBEE_VERSION.tar.gz
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.5.tar.gz
 curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.4.3/telegram-purple_1.4.3.orig.tar.gz
 curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.0.tar.gz
-hg clone https://bitbucket.org/EionRobb/purple-hangouts/
+git clone https://github.com/EionRobb/purple-hangouts.git
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon
-hg clone https://bitbucket.org/EionRobb/purple-rocketchat
+git clone https://github.com/EionRobb/purple-rocketchat.git
 curl -LO# https://github.com/sm00th/bitlbee-discord/archive/0.4.3.tar.gz
 git clone https://github.com/dylex/slack-libpurple.git
 git clone https://github.com/jgeboski/bitlbee-steam.git
