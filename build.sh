@@ -8,7 +8,7 @@ libgcrypt20-dev libmarkdown2-dev libpurple-dev libsqlite3-dev libwebp-dev libtoo
 
 cd
 curl -LO# https://get.bitlbee.org/src/bitlbee-$BITLBEE_VERSION.tar.gz
-curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.5.tar.gz
+curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.7.tar.gz
 curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.4.3/telegram-purple_1.4.3.orig.tar.gz
 curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.0.tar.gz
 git clone https://github.com/EionRobb/purple-hangouts.git
@@ -31,8 +31,8 @@ make install-dev
 
 # skypeweb
 cd
-tar zxvf 1.5.tar.gz
-cd skype4pidgin-1.5/skypeweb
+tar zxvf 1.7.tar.gz
+cd skype4pidgin-1.7/skypeweb
 make
 make install
 
@@ -123,7 +123,7 @@ rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/*
 cd
 rm -fr /root/build.sh
 rm -fr $BITLBEE_VERSION*
-rm -fr 1.5.tar.gz skype4pidgin-*
+rm -fr 1.7.tar.gz skype4pidgin-*
 rm -fr telegram-purple*
 rm -fr v1.2.0.tar.gz bitlbee-facebook-*
 rm -fr purple-hangouts
