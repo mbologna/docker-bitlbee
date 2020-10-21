@@ -10,7 +10,7 @@ cd
 curl -LO# https://get.bitlbee.org/src/bitlbee-$BITLBEE_VERSION.tar.gz
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.7.tar.gz
 curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.4.3/telegram-purple_1.4.3.orig.tar.gz
-curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.0.tar.gz
+curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.1.tar.gz
 git clone https://github.com/EionRobb/purple-hangouts.git
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon
 git clone https://github.com/EionRobb/purple-rocketchat.git
@@ -46,8 +46,8 @@ make install
 
 # bitlbee-facebook
 cd
-tar zxvf v1.2.0.tar.gz
-cd bitlbee-facebook-1.2.0
+tar zxvf v1.2.1.tar.gz
+cd bitlbee-facebook-1.2.1
 ./autogen.sh
 make
 make install
@@ -125,7 +125,7 @@ rm -fr /root/build.sh
 rm -fr $BITLBEE_VERSION*
 rm -fr 1.7.tar.gz skype4pidgin-*
 rm -fr telegram-purple*
-rm -fr v1.2.0.tar.gz bitlbee-facebook-*
+rm -fr v1.2.1.tar.gz bitlbee-facebook-*
 rm -fr purple-hangouts
 rm -rf bitlbee-mastodon
 rm -rf purple-rocketchat
