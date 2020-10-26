@@ -7,7 +7,7 @@
     - Facebook (MQTT) via [bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook)
     - Google Hangouts via [purple-hangouts](https://github.com/EionRobb/purple-hangouts)
     - Mastodon via [bitlbee-mastodon](https://alexschroeder.ch/software/Bitlbee_Mastodon)
-    - Rocket.Chat via [purple-rocketchat](https://bitbucket.org/EionRobb/purple-rocketchat/src/default/)
+    - Rocket.Chat via [purple-rocketchat](https://github.com/EionRobb/purple-rocketchat)
     - Discord via [bitlbee-discord](https://github.com/sm00th/bitlbee-discord/)
     - Slack via [slack-libpurple](https://github.com/dylex/slack-libpurple)
     - Steam via [bitlbee-steam](https://github.com/bitlbee/bitlbee-steam)
