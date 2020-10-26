@@ -9,7 +9,7 @@ libgcrypt20-dev libmarkdown2-dev libpurple-dev libsqlite3-dev libwebp-dev libtoo
 cd
 curl -LO# https://get.bitlbee.org/src/bitlbee-$BITLBEE_VERSION.tar.gz
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.7.tar.gz
-curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.4.3/telegram-purple_1.4.3.orig.tar.gz
+curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.4.4/telegram-purple_1.4.4.orig.tar.gz
 curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.1.tar.gz
 git clone https://github.com/EionRobb/purple-hangouts.git
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon
@@ -38,7 +38,7 @@ make install
 
 # telegram-purple
 cd
-tar zxvf telegram-purple_1.4.3.orig.tar.gz
+tar zxvf telegram-purple_1.4.4.orig.tar.gz
 cd telegram-purple
 ./configure
 make
