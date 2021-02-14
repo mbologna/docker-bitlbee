@@ -11,5 +11,6 @@ RUN /root/build.sh
 VOLUME ["/usr/local/etc/bitlbee"]
 VOLUME ["/var/lib/bitlbee"]
 EXPOSE 6667
-CMD ["/usr/local/sbin/bitlbee", "-c", "/usr/local/etc/bitlbee/bitlbee.conf", "-n", "-v"]
+ENTRYPOINT ["/usr/local/sbin/bitlbee"]
+CMD ["-c", "/usr/local/etc/bitlbee/bitlbee.conf", "-n", "-v"]
 USER bitlbee
