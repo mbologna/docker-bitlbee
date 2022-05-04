@@ -113,10 +113,10 @@ make install
 libtool --finish /usr/local/lib/bitlbee
 
 # cleanup
+apt autoremove --purge -y
 apt remove -y --purge autoconf automake autotools-dev binutils binutils-common binutils-x86-64-linux-gnu build-essential \
-bzip2 cpp* dpkg-dev g++* gcc* gettext gettext-base libbinutils libgcc-*-dev libsqlite3-dev libstdc++-*-dev \
-bzip2 cpp cpp-8 dpkg-dev g++ g++-8 gcc gcc-8 gettext gettext-base libbinutils libgcc-8-dev libsqlite3-dev libstdc++-8-dev \
-libtasn1-6-dev libtool libtool-bin m4 make nettle-dev patch xz-utils
+bzip2 cpp* dpkg-dev gettext gettext-base libbinutils libgcc-*-dev libsqlite3-dev libstdc++-*-dev \
+libtasn1-*-dev libtool libtool-bin m4 make nettle-dev patch xz-utils
 apt clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/*
 cd
