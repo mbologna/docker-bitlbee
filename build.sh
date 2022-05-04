@@ -4,12 +4,12 @@ apt update
 apt install -y --no-install-recommends autoconf automake build-essential gettext gcc libtool make \
 libglib2.0-dev libhttp-parser-dev libotr5-dev libpurple-dev libgnutls28-dev \
 libjson-glib-dev libpng-dev libolm-dev libprotobuf-c-dev protobuf-c-compiler \
-libgcrypt20-dev libmarkdown2-dev libpurple-dev libsqlite3-dev libwebp-dev libtool-bin
+libgcrypt20-dev libmarkdown2-dev libpurple-dev libsqlite3-dev libwebp-dev libtool-bin \
+software-properties-common
 
 cd
 curl -LO# https://get.bitlbee.org/src/bitlbee-$BITLBEE_VERSION.tar.gz
 curl -LO# https://github.com/EionRobb/skype4pidgin/archive/1.7.tar.gz
-curl -LO# https://github.com/majn/telegram-purple/releases/download/v1.4.4/telegram-purple_1.4.4.orig.tar.gz
 curl -LO# https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.1.tar.gz
 git clone https://github.com/EionRobb/purple-hangouts.git
 git clone https://alexschroeder.ch/cgit/bitlbee-mastodon
@@ -36,13 +36,11 @@ cd skype4pidgin-1.7/skypeweb
 make
 make install
 
-# telegram-purple
-cd
-tar zxvf telegram-purple_1.4.4.orig.tar.gz
-cd telegram-purple
-./configure
-make
-make install
+# tdlib-purple
+curl -fsSL https://download.opensuse.org/repositories/home:ars3n1y/Debian_11/Release.key | apt-key add -
+apt-add-repository 'deb http://download.opensuse.org/repositories/home:/ars3n1y/Debian_11/ /'
+apt update
+apt install -y --no-install-recommends libpurple-telegram-tdlib
 
 # bitlbee-facebook
 cd
@@ -116,6 +114,7 @@ libtool --finish /usr/local/lib/bitlbee
 
 # cleanup
 apt remove -y --purge autoconf automake autotools-dev binutils binutils-common binutils-x86-64-linux-gnu build-essential \
+bzip2 cpp* dpkg-dev g++* gcc* gettext gettext-base libbinutils libgcc-*-dev libsqlite3-dev libstdc++-*-dev \
 bzip2 cpp cpp-8 dpkg-dev g++ g++-8 gcc gcc-8 gettext gettext-base libbinutils libgcc-8-dev libsqlite3-dev libstdc++-8-dev \
 libtasn1-6-dev libtool libtool-bin m4 make nettle-dev patch xz-utils
 apt clean
@@ -124,7 +123,6 @@ cd
 rm -fr /root/build.sh
 rm -fr $BITLBEE_VERSION*
 rm -fr 1.7.tar.gz skype4pidgin-*
-rm -fr telegram-purple*
 rm -fr v1.2.1.tar.gz bitlbee-facebook-*
 rm -fr purple-hangouts
 rm -rf bitlbee-mastodon
