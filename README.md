@@ -3,7 +3,7 @@
 * In addition to the [Bitlbee's out of the box supported protocols](https://wiki.bitlbee.org/), this container also supports the following protocols:
 
     - Skype via [skype4pidgin](https://github.com/EionRobb/skype4pidgin)
-    - Telegram via [telegram-purple](https://github.com/majn/telegram-purple)
+    - Telegram via [tdlib-purple](https://github.com/ars3niy/tdlib-purple)
     - Facebook (MQTT) via [bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook)
     - Google Hangouts via [purple-hangouts](https://github.com/EionRobb/purple-hangouts)
     - Mastodon via [bitlbee-mastodon](https://alexschroeder.ch/software/Bitlbee_Mastodon)
