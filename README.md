@@ -44,7 +44,7 @@
                         mbologna/docker-bitlbee
         % docker run -d --name bitlbee-stunnel \
                         --restart=always \
-                        --link bitlbee:bitlbee
+                        --link bitlbee:bitlbee \
                         -e STUNNEL_SERVICE=bitlbee-stunnel \
                         -e STUNNEL_ACCEPT=6697 \
                         -e STUNNEL_CONNECT=bitlbee:6667 \
