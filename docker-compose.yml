@@ -3,7 +3,7 @@ version: "2.0"
 services:
   bitlbee:
     build: .
-    image: mbologna/docker-bitlbee
+    image: docker.io/mbologna/docker-bitlbee
     container_name: bitlbee
     restart: always
     ports:
@@ -14,7 +14,7 @@ services:
       - ./etc/bitlbee:/usr/local/etc/bitlbee
       - bitlbee_data:/var/lib/bitlbee
   stunnel:
-    image: dweomer/stunnel
+    image: docker.io/dweomer/stunnel
     container_name: bitlbee-stunnel
     restart: always
     networks:
