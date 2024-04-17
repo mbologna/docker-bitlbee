@@ -1,4 +1,4 @@
-FROM buildpack-deps:stable-scm
+FROM docker.io/buildpack-deps:stable-scm
 LABEL maintainer="Michele Bologna <github@michelebologna.net>"
 LABEL name="BitlBee Docker container by Michele Bologna"
 LABEL version="mb-3.6-20232412"
