@@ -11,8 +11,7 @@ services:
     networks:
       - bitlbee
     volumes:
-      - ./etc/bitlbee:/usr/local/etc/bitlbee
-      - bitlbee_data:/var/lib/bitlbee
+      - bitlbee_data:/usr/local/etc/bitlbee
   stunnel:
     image: docker.io/dweomer/stunnel
     container_name: bitlbee-stunnel
@@ -30,6 +29,4 @@ services:
 
 volumes:
   bitlbee_data:
-
-networks:
-  bitlbee:
+    driver: local

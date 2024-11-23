@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bitlbee
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bitlbee
+  template:
+    metadata:
+      labels:
+        app: bitlbee
+    spec:
+      containers:
+        - name: bitlbee
+          image: mbologna/docker-bitlbee:latest
+          ports:
+            - containerPort: 6667
+          volumeMounts:
+            - name: bitlbee-config
+              mountPath: /usr/local/etc/bitlbee/bitlbee.conf  # Mount the config file inside the container
+              subPath: bitlbee.conf
+      volumes:
+        - name: bitlbee-config
+          configMap:
+            name: bitlbee-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitlbee-service
+spec:
+  selector:
+    app: bitlbee
+  ports:
+    - protocol: TCP
+      port: 6667
+      targetPort: 6667
+  type: ClusterIP

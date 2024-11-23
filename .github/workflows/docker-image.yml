@@ -1,91 +1,55 @@
-name: Docker Image CI
+name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
-  
-env:
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
+    branches:
+      - main  # Trigger the pipeline when changes are pushed to the 'main' branch
 
-
-jobs: 
-  build_and_push_to_dockerhub:
-    name: Build and push Docker image to DockerHub
+jobs:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
+
     steps:
-      - name: Checkout repository
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
         uses: actions/checkout@v3
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
-      - name: Log into registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-        with:
-          images: ${{ env.IMAGE_NAME }}
 
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.IMAGE_NAME }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
+      # Step 2: Set up Docker Buildx for advanced building capabilities
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-  build_and_push_to_ghcr:
-    name: Build and push Docker image to GHCR
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@79abd3f86f79a9d68a23c75a09a9a85889262adf
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
-      - name: Log into registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+      # Step 3: Cache Docker layers to improve build time
+      - name: Cache Docker layers
+        uses: actions/cache@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
-        with:
-          images: ghcr.io/${{ env.IMAGE_NAME }}
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a
+      # Step 4: Build the Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }} .
+
+      # Step 5: Security scan with Trivy
+      - name: Scan Docker image for vulnerabilities with Trivy
+        uses: aquasecurity/trivy-action@v0.3.0
         with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          image: ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }}
+          format: 'table'  # This will show the results in a table format (can also use json or html)
+          exit-code: '1'   # Fail the build if vulnerabilities are found (optional)
+          severity: 'CRITICAL,HIGH'  # Only check for critical and high severity vulnerabilities
+
+      # Step 6: Push Docker image to Docker Hub
+      - name: Push Docker image to Docker Hub
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }}
+
+      # Step 7: Push Docker image to GitHub Container Registry
+      - name: Push Docker image to GitHub Container Registry
+        run: |
+          docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+          docker tag ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/bitlbee:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/bitlbee:${{ github.sha }}
