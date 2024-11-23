@@ -36,7 +36,7 @@ If you want to configure BitlBee you can do so by editing the configuration file
 1. Create the Deployment:
 
 ```
-kubectl apply -f bitlbee-deployment.yaml
+kubectl apply -f k8s/bitlbee-deployment.yaml
 ```
 
 NOTE: If you are using ClusterIP, BitlBee will be accessible internally within the Kubernetes cluster. If you need external access, you can modify the service type to NodePort or LoadBalancer.
@@ -47,7 +47,7 @@ NOTE: If you are using ClusterIP, BitlBee will be accessible internally within t
 If you want to configure BitlBee you can do so by configuring the ConfigMap stored in k8s/bitlbee-config.yaml and then create it:
 
 ```
-kubectl apply -f bitlbee-configmap.yaml
+kubectl apply -f k8s/bitlbee-configmap.yaml
 ```
 
 
