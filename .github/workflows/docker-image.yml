@@ -3,7 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - main  # Trigger the pipeline when changes are pushed to the 'main' branch
+      - master
 
 jobs:
   build:
@@ -34,7 +34,7 @@ jobs:
 
       # Step 5: Security scan with Trivy
       - name: Scan Docker image for vulnerabilities with Trivy
-        uses: aquasecurity/trivy-action@v0.3.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image: ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }}
           format: 'table'  # This will show the results in a table format (can also use json or html)
