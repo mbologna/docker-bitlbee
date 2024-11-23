@@ -14,6 +14,9 @@ ENV BITLBEE_HOME=/usr/local/etc/bitlbee
 COPY build.sh /root/
 RUN chmod +x /root/build.sh && /root/build.sh
 
+COPY etc/bitlbee/bitlbee.conf /usr/local/etc/bitlbee/bitlbee.conf
+COPY etc/bitlbee/motd.txt /usr/local/etc/bitlbee/motd.txt
+
 # Define volumes for persistent data
 VOLUME ["/usr/local/etc/bitlbee"]
 

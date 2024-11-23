@@ -74,7 +74,7 @@ rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # Remove temporary files and downloaded sources
 echo "Removing temporary files..."
 rm -fr /root/build.sh
-rm -fr $BITLBEE_VERSION*
+rm -fr bitlbee-$BITLBEE_VERSION*
 rm -fr 1.7.tar.gz skype4pidgin-*
 rm -fr tdlib-purple*
 rm -fr v1.2.2.tar.gz bitlbee-facebook-*

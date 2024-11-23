@@ -16,15 +16,16 @@ This repository contains a Docker container for [BitlBee](https://www.bitlbee.or
 
 ## Usage via Docker
 
-1. Start `bitlbee` via [Docker Compose](https://docs.docker.com/compose/install/):
+1. Configuration (optional):
+
+If you want to configure BitlBee you can do so by editing the configuration files by accessing the container or volume mounted at `bitlbee_data` (/usr/local/etc/bitlbee.conf).
+
+
+2. Start `bitlbee` via [Docker Compose](https://docs.docker.com/compose/install/):
 
 ```
 docker-compose up -d
 ```
-
-2. Configuration (optional):
-
-If you want to configure BitlBee you can do so by editing the configuration files by accessing the container or volume mounted at `bitlbee_data` (/usr/local/etc/bitlbee.conf).
 
 3. Connect your IRC client either to:
 
@@ -33,23 +34,23 @@ If you want to configure BitlBee you can do so by editing the configuration file
 
 ## Usage via Kubernetes
 
-1. Create the Deployment:
+1. Configuration:
+
+Create the ConfigMap to hold the configuration for BitlBee:
+
+```
+kubectl apply -f k8s/bitlbee-configmap.yaml
+```
+
+If you want to further configure BitlBee you can do so by modifing the ConfigMap.
+
+2. Create the Deployment:
 
 ```
 kubectl apply -f k8s/bitlbee-deployment.yaml
 ```
 
 NOTE: If you are using ClusterIP, BitlBee will be accessible internally within the Kubernetes cluster. If you need external access, you can modify the service type to NodePort or LoadBalancer.
-
-
-2. Configuration (optional):
-
-If you want to configure BitlBee you can do so by configuring the ConfigMap stored in k8s/bitlbee-config.yaml and then create it:
-
-```
-kubectl apply -f k8s/bitlbee-configmap.yaml
-```
-
 
 ## Building the Container
 
