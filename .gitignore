@@ -1,0 +1,13 @@
+# Logs
+*.log
+
+# Docker
+docker/data/
+.env
+
+# Kubernetes
+k8s/*.secret.yaml
+
+# Build artifacts
+*.o
+*.out
