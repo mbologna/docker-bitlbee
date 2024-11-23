@@ -5,10 +5,6 @@ on:
     branches:
       - master
 
-steps:
-  - name: Install Trivy
-    uses: aquasecurity/setup-trivy@v0.2.2
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,6 +32,8 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }} .
 
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@v0.2.2
       # Step 5: Security scan with Trivy
       - name: Scan Docker image for vulnerabilities with Trivy
         uses: aquasecurity/trivy-action@v0.28.0
