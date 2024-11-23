@@ -1,24 +1,41 @@
-version: "2.0"
+version: '3.8'
 
 services:
   bitlbee:
-    build: .
-    image: docker.io/mbologna/docker-bitlbee
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: docker.io/mbologna/docker-bitlbee:latest
     container_name: bitlbee
-    restart: always
+    restart: unless-stopped
     ports:
-      - "16667:6667"
-    networks:
-      - bitlbee
+      - "6667:6667"
     volumes:
-      - ./etc/bitlbee:/usr/local/etc/bitlbee
-      - bitlbee_data:/var/lib/bitlbee
+      - ./data:/var/lib/bitlbee
+    user: "${UID}:${GID}" # Needed for VOLUME permissions
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "6667" ]
+      interval: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - bitlbee-net
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
+        reservations:
+          memory: 256m
+
   stunnel:
-    image: docker.io/dweomer/stunnel
+    image: docker.io/dweomer/stunnel:latest
     container_name: bitlbee-stunnel
     restart: always
-    networks:
-      - bitlbee
     ports:
       - "16697:6697"
     environment:
@@ -27,9 +44,25 @@ services:
       - STUNNEL_CONNECT=bitlbee:6667
     depends_on:
       - bitlbee
-
-volumes:
-  bitlbee_data:
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "6697" ]
+      interval: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - bitlbee-net
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "1.0"
+        reservations:
+          memory: 128m
 
 networks:
-  bitlbee:
+  bitlbee-net:
+    driver: bridge

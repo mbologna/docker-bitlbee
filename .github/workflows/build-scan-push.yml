@@ -1,0 +1,91 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+      - name: Lint Shell Scripts with ShellCheck
+        uses: ludeeus/action-shellcheck@master
+
+      - name: Lint Kubernetes Resources with KubeLinter
+        id: kube-lint-scan
+        uses: stackrox/kube-linter-action@v1
+        with:
+          directory: k8s
+          config: .kube-linter/config.yaml
+
+      # Set up Docker Buildx for multi-architecture builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Cache Docker layers for faster builds
+      - name: Cache Docker Layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-latest
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log into registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:latest
+            ghcr.io/${{ github.repository_owner }}/docker-bitlbee:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: ${{ github.event_name != 'pull_request' }}
+
+      - name: Scan Docker Image for Vulnerabilities with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:latest
+          format: 'table'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-scan-results
+          path: trivy-results.json

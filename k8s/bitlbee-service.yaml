@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitlbee
+  namespace: bitlbee
+spec:
+  ports:
+    - protocol: TCP
+      port: 6667
+      targetPort: 6667
+  selector:
+    app: bitlbee
