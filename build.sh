@@ -91,4 +91,4 @@ adduser --system --home /var/lib/bitlbee --disabled-password \
     --disabled-login --shell /usr/sbin/nologin bitlbee
 
 # Create a necessary PID file
-touch /var/run/bitlbee.pid && chown bitlbee:bitlbee /var/run/bitlbee.pid
+touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
