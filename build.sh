@@ -39,10 +39,10 @@ git clone https://github.com/EionRobb/purple-teams
 echo "Building and installing BitlBee..."
 tar zxvf bitlbee-$BITLBEE_VERSION.tar.gz
 cd bitlbee-$BITLBEE_VERSION
-./configure --jabber=1 --otr=1 --purple=1
+./configure --jabber=1 --otr=1 --purple=1 --ssl=openssl --prefix=/usr --etcdir=/etc/bitlbee
 make
-make install
 make install-dev
+make install-etc
 cd ..
 
 # Install other plugins
@@ -57,7 +57,7 @@ install_package "purple-matrix"
 install_package "purple-teams"
 
 # Final setup for BitlBee
-libtool --finish /usr/local/lib/bitlbee
+libtool --finish /usr/lib/bitlbee
 
 # Clean up
 echo "Cleaning up unnecessary packages..."
@@ -91,4 +91,4 @@ adduser --system --home /var/lib/bitlbee --disabled-password \
     --disabled-login --shell /usr/sbin/nologin bitlbee
 
 # Create a necessary PID file
-touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
+touch /var/run/bitlbee.pid && chown bitlbee:bitlbee /var/run/bitlbee.pid

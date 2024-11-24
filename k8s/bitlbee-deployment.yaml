@@ -17,15 +17,6 @@ spec:
           image: mbologna/docker-bitlbee:latest
           ports:
             - containerPort: 6667
-          volumeMounts:
-            - name: bitlbee-config
-              mountPath: /usr/local/etc/bitlbee/bitlbee.conf  # Mount the config file inside the container
-              subPath: bitlbee.conf
-      volumes:
-        - name: bitlbee-config
-          configMap:
-            name: bitlbee-config
-
 ---
 apiVersion: v1
 kind: Service

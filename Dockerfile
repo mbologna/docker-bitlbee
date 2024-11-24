@@ -18,16 +18,16 @@ COPY etc/bitlbee/bitlbee.conf /usr/local/etc/bitlbee/bitlbee.conf
 COPY etc/bitlbee/motd.txt /usr/local/etc/bitlbee/motd.txt
 
 # Define volumes for persistent data
-VOLUME ["/usr/local/etc/bitlbee"]
+VOLUME ["/var/lib/bitlbee"]
 
 # Expose necessary port for BitlBee
 EXPOSE 6667
 
-# Set the entrypoint for BitlBee
-ENTRYPOINT ["/usr/local/sbin/bitlbee"]
-
-# Provide default command arguments
-CMD ["-c", "/usr/local/etc/bitlbee/bitlbee.conf", "-n", "-v"]
-
 # Run as non-root user for security
 USER bitlbee
+
+# Set the entrypoint for BitlBee
+ENTRYPOINT ["/usr/sbin/bitlbee"]
+
+# Provide default command arguments
+CMD ["/usr/sbin/bitlbee", "-F", "-n", "-u", "bitlbee"]

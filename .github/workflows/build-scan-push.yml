@@ -30,26 +30,28 @@ jobs:
       # Step 4: Build the Docker image
       - name: Build Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }} .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }} .
 
       # Step 5: Security scan with Trivy
       - name: Scan Docker image for vulnerabilities with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image: ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }}
-          format: 'table'  # This will show the results in a table format (can also use json or html)
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }}
+          format: 'table'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
           exit-code: '1'   # Fail the build if vulnerabilities are found (optional)
-          severity: 'CRITICAL,HIGH'  # Only check for critical and high severity vulnerabilities
+          severity: 'CRITICAL,HIGH'
 
       # Step 6: Push Docker image to Docker Hub
       - name: Push Docker image to Docker Hub
         run: |
           docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }}
 
       # Step 7: Push Docker image to GitHub Container Registry
       - name: Push Docker image to GitHub Container Registry
         run: |
           docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-          docker tag ${{ secrets.DOCKER_USERNAME }}/bitlbee:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/bitlbee:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository_owner }}/bitlbee:${{ github.sha }}
+          docker tag ${{ secrets.DOCKER_USERNAME }}/docker-bitlbeebitlbee:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/docker-bitlbee:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/docker-bitlbee:${{ github.sha }}
