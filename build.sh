@@ -41,6 +41,9 @@ tar zxvf bitlbee-$BITLBEE_VERSION.tar.gz
 cd bitlbee-$BITLBEE_VERSION
 ./configure --jabber=1 --otr=1 --purple=1 --ssl=openssl --prefix=/usr --etcdir=/etc/bitlbee
 make
+make install
+make install-bin
+make install-doc
 make install-dev
 make install-etc
 cd ..

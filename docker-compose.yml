@@ -11,7 +11,7 @@ services:
     networks:
       - bitlbee
     volumes:
-      - bitlbee_data:/var/lib/bitlbee
+      - ./bitlbee_data:/var/lib/bitlbee
   stunnel:
     image: docker.io/dweomer/stunnel
     container_name: bitlbee-stunnel

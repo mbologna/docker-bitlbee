@@ -27,4 +27,4 @@ USER bitlbee
 ENTRYPOINT ["/usr/sbin/bitlbee"]
 
 # Provide default command arguments
-CMD ["/usr/sbin/bitlbee", "-F", "-n", "-u", "bitlbee"]
+CMD ["/usr/sbin/bitlbee", "-D", "-n", "-v"]
