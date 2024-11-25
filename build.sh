@@ -6,8 +6,11 @@ set -euxo pipefail
 install_package() {
     local dir="$1"
     echo "Installing $dir..."
-    cd "$dir" && make && make install && cd ..
+    cd "$dir" && make -j$(nproc) && make install && cd ..
 }
+
+export SKYPE4PIDGIN_VERSION=1.7
+export FACEBOOK_VERSION=1.2.2
 
 echo "Installing build dependencies..."
 apt-get update && apt-get install -y --no-install-recommends \
@@ -22,9 +25,9 @@ apt-get update && apt-get install -y --no-install-recommends \
 
 echo "Downloading sources..."
 curl -LO https://get.bitlbee.org/src/bitlbee-$BITLBEE_VERSION.tar.gz
-curl -LO https://github.com/EionRobb/skype4pidgin/archive/1.7.tar.gz
+curl -LO https://github.com/EionRobb/skype4pidgin/archive/$SKYPE4PIDGIN_VERSION.tar.gz
 git clone https://github.com/BenWiederhake/tdlib-purple
-curl -LO https://github.com/bitlbee/bitlbee-facebook/archive/v1.2.2.tar.gz
+curl -LO https://github.com/bitlbee/bitlbee-facebook/archive/v$FACEBOOK_VERSION.tar.gz
 git clone https://github.com/EionRobb/purple-hangouts
 git clone https://src.alexschroeder.ch/bitlbee-mastodon.git
 git clone https://github.com/EionRobb/purple-discord
@@ -47,9 +50,9 @@ make install-etc
 cd ..
 
 # Install other plugins
-tar zxvf 1.7.tar.gz && install_package "skype4pidgin-1.7/skypeweb" && cd ..
+tar zxvf $SKYPE4PIDGIN_VERSION.tar.gz && install_package "skype4pidgin-$SKYPE4PIDGIN_VERSION/skypeweb" && cd ..
 cd "tdlib-purple" && ./build_and_install.sh && cd ..
-tar zxvf v1.2.2.tar.gz && cd "bitlbee-facebook-1.2.2" && ./autogen.sh && make && make install && cd ..
+tar zxvf v$FACEBOOK_VERSION.tar.gz && cd "bitlbee-facebook-$FACEBOOK_VERSION" && ./autogen.sh && make && make install && cd ..
 install_package "purple-hangouts"
 cd "bitlbee-mastodon" && sh autogen.sh && ./configure && make && make install && cd ..
 install_package "purple-discord"
@@ -75,9 +78,9 @@ rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 echo "Removing temporary files..."
 rm -fr /root/build.sh
 rm -fr bitlbee-$BITLBEE_VERSION*
-rm -fr 1.7.tar.gz skype4pidgin-*
+rm -fr $SKYPE4PIDGIN_VERSION.tar.gz skype4pidgin-*
 rm -fr tdlib-purple*
-rm -fr v1.2.2.tar.gz bitlbee-facebook-*
+rm -fr v$FACEBOOK_VERSION.tar.gz bitlbee-facebook-*
 rm -fr purple-hangouts
 rm -rf bitlbee-mastodon
 rm -fr purple-discord*

@@ -4,54 +4,47 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Docker Buildx for advanced building capabilities
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v2
+        with:
+          dockerfile: ./Dockerfile
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Step 3: Cache Docker layers to improve build time
-      - name: Cache Docker layers
-        uses: actions/cache@v3
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:latest
+            ghcr.io/${{ github.repository_owner }}/docker-bitlbee:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/docker-bitlbee:latest
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      # Step 4: Build the Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }} .
-
-      # Step 5: Security scan with Trivy
       - name: Scan Docker image for vulnerabilities with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.12.0
         with:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }}
           format: 'table'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          exit-code: '1'   # Fail the build if vulnerabilities are found (optional)
+          exit-code: '1'
           severity: 'CRITICAL,HIGH'
-
-      # Step 6: Push Docker image to Docker Hub
-      - name: Push Docker image to Docker Hub
-        run: |
-          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }}
-
-      # Step 7: Push Docker image to GitHub Container Registry
-      - name: Push Docker image to GitHub Container Registry
-        run: |
-          docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-          docker tag ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }} ghcr.io/${{ github.repository_owner }}/docker-bitlbee:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository_owner }}/docker-bitlbee:${{ github.sha }}

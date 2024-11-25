@@ -22,6 +22,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - bitlbee-net
 
   stunnel:
     image: docker.io/dweomer/stunnel:latest
@@ -44,3 +46,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - bitlbee-net
+
+networks:
+  bitlbee-net:
+    driver: bridge
