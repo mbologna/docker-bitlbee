@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e  # Exit script on any error
+set -euxo pipefail
 
 # Function to install a package from source
 install_package() {
@@ -9,7 +9,6 @@ install_package() {
     cd "$dir" && make && make install && cd ..
 }
 
-# Install BitlBee dependencies
 echo "Installing build dependencies..."
 apt-get update && apt-get install -y --no-install-recommends \
     autoconf automake build-essential cmake g++ gettext gcc git \
@@ -19,9 +18,8 @@ apt-get update && apt-get install -y --no-install-recommends \
     protobuf-c-compiler libgcrypt20-dev libmarkdown2-dev \
     libpng-dev libpurple-dev librsvg2-bin libsqlite3-dev libwebp-dev \
     libgdk-pixbuf2.0-dev libopusfile-dev \
-    libtool-bin pkg-config sudo
+    libtool-bin netcat-traditional pkg-config sudo
 
-# Download sources for BitlBee and plugins
 echo "Downloading sources..."
 curl -LO https://get.bitlbee.org/src/bitlbee-$BITLBEE_VERSION.tar.gz
 curl -LO https://github.com/EionRobb/skype4pidgin/archive/1.7.tar.gz
@@ -74,7 +72,6 @@ apt-get remove -y --purge autoconf automake autotools-dev binutils \
 apt-get clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Remove temporary files and downloaded sources
 echo "Removing temporary files..."
 rm -fr /root/build.sh
 rm -fr bitlbee-$BITLBEE_VERSION*
@@ -88,10 +85,8 @@ rm -fr slack-libpurple
 rm -fr purple-matrix
 rm -fr purple-teams
 
-# Add user for BitlBee
 echo "Adding user bitlbee..."
 adduser --system --home /var/lib/bitlbee --disabled-password \
     --disabled-login --shell /usr/sbin/nologin bitlbee
 
-# Create a necessary PID file
 touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
