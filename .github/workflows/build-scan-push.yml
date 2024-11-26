@@ -14,17 +14,32 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Hadolint
         uses: hadolint/hadolint-action@v2
         with:
           dockerfile: ./Dockerfile
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Lint Shell Script with ShellCheck
+        uses: ludeeus/action-shellcheck@v2
+        with:
+          files: |
+            build.sh
+            entrypoint.sh
 
-      - name: Build and Push Docker image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -32,15 +47,12 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }}
-            ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:latest
             ghcr.io/${{ github.repository_owner }}/docker-bitlbee:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/docker-bitlbee:latest
-          push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Scan Docker image for vulnerabilities with Trivy
-        uses: aquasecurity/trivy-action@v0.12.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }}
           format: 'table'
@@ -48,3 +60,14 @@ jobs:
           vuln-type: 'os,library'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-scan-results
+          path: trivy-results.json
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner }}/docker-bitlbee:${{ github.sha }}

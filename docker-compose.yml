@@ -24,6 +24,13 @@ services:
         max-file: "3"
     networks:
       - bitlbee-net
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
+        reservations:
+          memory: 256m
 
   stunnel:
     image: docker.io/dweomer/stunnel:latest
@@ -48,6 +55,13 @@ services:
         max-file: "3"
     networks:
       - bitlbee-net
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "1.0"
+        reservations:
+          memory: 128m
 
 networks:
   bitlbee-net:

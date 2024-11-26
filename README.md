@@ -1,9 +1,14 @@
-This repository contains a Docker container for [BitlBee](https://www.bitlbee.org/), a chat gateway that connects different messaging protocols (like IRC, Facebook, Skype, etc.). The container is built with plugins for various services such as Skype, Discord, Mastodon, and more.
+# Docker BitlBee
+
+![Docker](https://img.shields.io/docker/pulls/mbologna/docker-bitlbee)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/mbologna/docker-bitlbee/build-scan-push.yml?branch=master)
+
+This repository provides a containerized version of [BitlBee](https://www.bitlbee.org/), an IRC gateway for instant messaging services, along with additional plugins for extended functionality (e.g., Skype, Facebook, Discord, Mastodon, and more).
 
 ## Features
 
-* In addition to the [Bitlbee's out of the box supported protocols](https://wiki.bitlbee.org/), this container also supports the following protocols:
-
+- **BitlBee Version**: `3.6`
+- Pre-installed plugins:
     - Skype via [skype4pidgin](https://github.com/EionRobb/skype4pidgin)
     - Telegram via [tdlib-purple](https://github.com/BenWiederhake/tdlib-purple)
     - Facebook (MQTT) via [bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook)
@@ -13,51 +18,180 @@ This repository contains a Docker container for [BitlBee](https://www.bitlbee.or
     - Slack via [slack-libpurple](https://github.com/dylex/slack-libpurple)
     - Matrix via [purple-matrix](https://github.com/matrix-org/purple-matrix)
     - Microsoft Teams via [teams](https://github.com/EionRobb/purple-teams)
+- Secured IRC communication with optional TLS using **stunnel**.
+- Customizable and persistent storage.
+- Lightweight and production-ready container.
 
-## Usage via Docker
+---
 
-1. Configuration (optional):
+## Getting Started (Docker and docker compose)
 
-If you want to configure BitlBee you can do so by editing the configuration files by accessing the container or volume mounted at `bitlbee_data` (/usr/local/etc/bitlbee.conf).
+Follow these instructions to set up and run the BitlBee container.
 
+### Prerequisites
 
-2. Start `bitlbee` via [Docker Compose](https://docs.docker.com/compose/install/):
+- [Docker](https://www.docker.com/get-started) installed on your system.
+- [Docker Compose](https://docs.docker.com/compose/) (optional for multi-container setup).
 
-```
-docker-compose up -d
-```
+---
 
-3. Connect your IRC client either to:
+### Installation
 
-    * localhost:16697 (TLS terminated via stunnel) (recommended)
-    * localhost:16667 (non-TLS, plain connection)
-
-## Usage via Kubernetes
-
-1. Configuration:
-
-Create the ConfigMap to hold the configuration for BitlBee:
-
-```
-kubectl apply -f k8s/bitlbee-configmap.yaml
-```
-
-If you want to further configure BitlBee you can do so by modifing the ConfigMap.
-
-2. Create the Deployment:
-
-```
-kubectl apply -f k8s/bitlbee-deployment.yaml
-```
-
-NOTE: If you are using ClusterIP, BitlBee will be accessible internally within the Kubernetes cluster. If you need external access, you can modify the service type to NodePort or LoadBalancer.
-
-## Building the Container
-
-To build the Docker container, clone this repository and build the image using the following command:
+#### Clone the Repository
 
 ```bash
-git clone https://github.com/mbologna/bitlbee-docker.git
-cd bitlbee-docker
-docker build -t bitlbee:latest .
+git clone https://github.com/mbologna/docker-bitlbee.git
+cd docker-bitlbee
 ```
+
+#### Build and Run with Docker Compose
+
+Build the image:
+
+```
+docker compose build
+```
+
+Run the containers:
+
+```
+docker compose up -d
+```
+
+Check the container logs:
+
+```
+docker logs -f bitlbee
+```
+
+### Configuration
+#### Volumes
+
+The container uses /var/lib/bitlbee to store persistent data, including user configuration files. Mount a local directory to this volume to retain data:
+
+```
+volumes:
+  - ./data:/var/lib/bitlbee
+```
+
+#### Ports
+
+* 6667: Standard IRC port for BitlBee.
+* 6697: Secure IRC port (`stunnel`).
+
+You can change these ports in `docker-compose.yml` if needed.
+
+### Usage
+
+* Connect to the BitlBee server using any IRC client (e.g., HexChat, mIRC):
+    Server: localhost
+    Port: 6667 or 6697 (TLS)
+* Add IM accounts by typing commands in the IRC client. Example for adding a Google account:
+
+    ```
+    account add jabber username@gmail.com
+    ```
+
+Refer to the BitlBee User Guide for detailed instructions.
+
+## Getting Started (Kubernetes version)
+This repository provides Kubernetes manifests to deploy **BitlBee** with **Stunnel**. The setup ensures a secure communication channel by using Stunnel as a TLS wrapper for BitlBee.
+
+### Architecture
+
+The system consists of two components:
+
+1. **BitlBee**:
+   - IRC gateway for IM services.
+   - Exposes port `6667` for internal communication.
+   - Uses a PersistentVolumeClaim for data persistence.
+
+2. **Stunnel**:
+   - Provides TLS encryption for BitlBee communication.
+   - Listens on port `6697` and forwards traffic to BitlBee's port `6667`.
+
+---
+
+### Prerequisites
+
+1. A Kubernetes cluster (minikube, kind, or a cloud provider).
+2. `kubectl` CLI tool installed and configured.
+3. A storage class available for the PersistentVolumeClaim (PVC).
+
+### Configuration
+
+#### Environment Variables for Stunnel
+
+The Stunnel pod uses a ConfigMap to define key environment variables:
+
+```
+STUNNEL_SERVICE: Name of the Stunnel service.
+STUNNEL_ACCEPT: Port Stunnel listens on (6697).
+STUNNEL_CONNECT: Target BitlBee service and port (bitlbee:6667).
+```
+
+#### Storage
+
+BitlBee data is persisted using a PVC:
+
+Default size: 1Gi
+Modify the PersistentVolumeClaim if more storage is required.
+
+### Deployment
+
+#### Step 1: Apply the Namespace
+
+```bash
+kubectl apply -f namespace.yml
+```
+
+#### Step 2: Deploy the ConfigMap
+
+```
+kubectl apply -f bitlbee-stunnel-configmap.yml
+```
+
+#### Step 3: Deploy BitlBee and Stunnel
+
+```
+kubectl apply -f bitlbee-deployment.yml
+kubectl apply -f bitlbee-stunnel-deployment.yml
+```
+
+#### Step 3: Create the PersistentVolumeClaim
+
+```
+kubectl apply -f pvc.yml
+```
+
+#### Step 4: Apply Services
+
+```
+kubectl apply -f bitlbee-service.yml
+kubectl apply -f bitlbee-stunnel-service.yml
+```
+
+#### Accessing the Services (ClusterIP)
+
+* BitlBee: Internally available on port 6667 within the cluster.
+* Stunnel: Internally available on port 6697 within the cluster.
+
+## CI/CD Pipeline
+
+This project includes a GitHub Actions workflow (build-scan-push.yml) to:
+
+- Lint Dockerfiles and shell scripts using Hadolint and ShellCheck.
+- Build and push Docker images to Docker Hub and GitHub Container Registry.
+- Scan images for vulnerabilities using Trivy.
+
+The image is built for both amd64 and arm64 platforms.
+
+## Security
+
+The container runs as a non-root user (bitlbee) for enhanced security.
+A health check ensures the container is operational and serving requests.
+TLS encryption is supported via stunnel.
+
+## Resources
+
+[BitlBee Documentation](https://wiki.bitlbee.org/)

@@ -6,7 +6,7 @@ set -euxo pipefail
 install_package() {
     local dir="$1"
     echo "Installing $dir..."
-    cd "$dir" && make -j$(nproc) && make install && cd ..
+    cd "$dir" && make -j"$(nproc)" && make install && cd ..
 }
 
 export SKYPE4PIDGIN_VERSION=1.7
@@ -24,10 +24,10 @@ apt-get update && apt-get install -y --no-install-recommends \
     libtool-bin netcat-traditional pkg-config sudo
 
 echo "Downloading sources..."
-curl -LO https://get.bitlbee.org/src/bitlbee-$BITLBEE_VERSION.tar.gz
-curl -LO https://github.com/EionRobb/skype4pidgin/archive/$SKYPE4PIDGIN_VERSION.tar.gz
+curl -LO https://get.bitlbee.org/src/bitlbee-"$BITLBEE_VERSION".tar.gz
+curl -LO https://github.com/EionRobb/skype4pidgin/archive/"$SKYPE4PIDGIN_VERSION".tar.gz
 git clone https://github.com/BenWiederhake/tdlib-purple
-curl -LO https://github.com/bitlbee/bitlbee-facebook/archive/v$FACEBOOK_VERSION.tar.gz
+curl -LO https://github.com/bitlbee/bitlbee-facebook/archive/v"$FACEBOOK_VERSION".tar.gz
 git clone https://github.com/EionRobb/purple-hangouts
 git clone https://src.alexschroeder.ch/bitlbee-mastodon.git
 git clone https://github.com/EionRobb/purple-discord
@@ -38,8 +38,8 @@ git clone https://github.com/EionRobb/purple-teams
 
 # Install BitlBee
 echo "Building and installing BitlBee..."
-tar zxvf bitlbee-$BITLBEE_VERSION.tar.gz
-cd bitlbee-$BITLBEE_VERSION
+tar zxvf bitlbee-"$BITLBEE_VERSION".tar.gz
+cd bitlbee-"$BITLBEE_VERSION"
 ./configure --jabber=1 --otr=1 --purple=1 --ssl=openssl --prefix=/usr --etcdir=/etc/bitlbee
 make
 make install
@@ -77,10 +77,10 @@ rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 echo "Removing temporary files..."
 rm -fr /root/build.sh
-rm -fr bitlbee-$BITLBEE_VERSION*
-rm -fr $SKYPE4PIDGIN_VERSION.tar.gz skype4pidgin-*
+rm -fr bitlbee-"$BITLBEE_VERSION"*
+rm -fr "$SKYPE4PIDGIN_VERSION".tar.gz skype4pidgin-*
 rm -fr tdlib-purple*
-rm -fr v$FACEBOOK_VERSION.tar.gz bitlbee-facebook-*
+rm -fr v"$FACEBOOK_VERSION".tar.gz bitlbee-facebook-*
 rm -fr purple-hangouts
 rm -rf bitlbee-mastodon
 rm -fr purple-discord*

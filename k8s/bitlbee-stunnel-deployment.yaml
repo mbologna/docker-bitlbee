@@ -1,39 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bitlbee
+  name: bitlbee-stunnel
   namespace: bitlbee
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: bitlbee
+      app: bitlbee-stunnel
   template:
     metadata:
       labels:
-        app: bitlbee
+        app: bitlbee-stunnel
     spec:
       containers:
-        - name: bitlbee
-          image: docker.io/mbologna/docker-bitlbee:latest
+        - name: stunnel
+          image: docker.io/dweomer/stunnel:latest
           ports:
-            - containerPort: 6667
-          volumeMounts:
-            - mountPath: /var/lib/bitlbee
-              name: bitlbee-data
+            - containerPort: 6697
+          envFrom:
+            - configMapRef:
+                name: stunnel-config
           resources:
             limits:
-              memory: "512Mi"
+              memory: "256Mi"
               cpu: "1"
             requests:
-              memory: "256Mi"
+              memory: "128Mi"
           livenessProbe:
             exec:
               command:
                 - nc
                 - -z
                 - localhost
-                - "6667"
+                - "6697"
             initialDelaySeconds: 30
             periodSeconds: 30
           readinessProbe:
@@ -42,10 +42,6 @@ spec:
                 - nc
                 - -z
                 - localhost
-                - "6667"
+                - "6697"
             initialDelaySeconds: 10
             periodSeconds: 30
-      volumes:
-        - name: bitlbee-data
-          persistentVolumeClaim:
-            claimName: bitlbee-pvc
