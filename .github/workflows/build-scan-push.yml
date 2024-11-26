@@ -16,23 +16,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Hadolint
+      - name: Lint Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
 
       - name: Lint Shell Script with ShellCheck
         uses: ludeeus/action-shellcheck@master
-        with:
-          files: |
-            build.sh
-            entrypoint.sh
 
-      - name: Lint Kubernetes files
+      - name: Lint Kubernetes resources with KubeLinter
         id: kube-lint-scan
         uses: stackrox/kube-linter-action@v1
         with:
           directory: k8s
+          config: .kube-linter/config.yaml
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
