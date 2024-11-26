@@ -17,16 +17,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Hadolint
-        uses: hadolint/hadolint-action@v2
+        uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: ./Dockerfile
+          dockerfile: Dockerfile
 
       - name: Lint Shell Script with ShellCheck
-        uses: ludeeus/action-shellcheck@v2
+        uses: ludeeus/action-shellcheck@master
         with:
           files: |
             build.sh
             entrypoint.sh
+
+      - name: Lint Kubernetes files
+        id: kube-lint-scan
+        uses: stackrox/kube-linter-action@v1
+        with:
+          directory: k8s
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

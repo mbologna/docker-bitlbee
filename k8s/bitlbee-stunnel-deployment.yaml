@@ -27,6 +27,7 @@ spec:
               cpu: "1"
             requests:
               memory: "128Mi"
+              cpu: "1"
           livenessProbe:
             exec:
               command:
