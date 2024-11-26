@@ -142,33 +142,33 @@ Modify the PersistentVolumeClaim if more storage is required.
 #### Step 1: Apply the Namespace
 
 ```bash
-kubectl apply -f namespace.yml
+kubectl apply -f k8s/bitlbee-namespace.yml
 ```
 
 #### Step 2: Deploy the ConfigMap
 
 ```
-kubectl apply -f bitlbee-stunnel-configmap.yml
+kubectl apply -f k8s/bitlbee-stunnel-configmap.yml
 ```
 
 #### Step 3: Deploy BitlBee and Stunnel
 
 ```
-kubectl apply -f bitlbee-deployment.yml
-kubectl apply -f bitlbee-stunnel-deployment.yml
+kubectl apply -f k8s/bitlbee-deployment.yml
+kubectl apply -f k8s/bitlbee-stunnel-deployment.yml
 ```
 
 #### Step 3: Create the PersistentVolumeClaim
 
 ```
-kubectl apply -f pvc.yml
+kubectl apply -f k8s/bitlbee-pvc.yml
 ```
 
 #### Step 4: Apply Services
 
 ```
-kubectl apply -f bitlbee-service.yml
-kubectl apply -f bitlbee-stunnel-service.yml
+kubectl apply -f k8s/bitlbee-service.yml
+kubectl apply -f k8s/bitlbee-stunnel-service.yml
 ```
 
 #### Accessing the Services (ClusterIP)
