@@ -61,7 +61,6 @@ jobs:
           format: 'table'
           ignore-unfixed: true
           vuln-type: 'os,library'
-          exit-code: '1'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy Report

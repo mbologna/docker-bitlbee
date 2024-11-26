@@ -2,24 +2,85 @@ FROM docker.io/buildpack-deps:bookworm-scm AS builder
 
 LABEL org.opencontainers.image.title="BitlBee Docker container" \
     org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
-    org.opencontainers.image.url="https://github.com/michelebologna/docker-bitlbee" \
+    org.opencontainers.image.url="https://github.com/mbologna/docker-bitlbee" \
     org.opencontainers.image.licenses="MIT"
 
-ENV BITLBEE_VERSION=3.6
+ENV BITLBEE_VERSION "3.6"
+ENV SKYPE4PIDGIN_VERSION "1.7"
+ENV FACEBOOK_VERSION "1.2.2"
 
-COPY build.sh /root/
-RUN chmod +x /root/build.sh && /root/build.sh
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    autoconf automake build-essential cmake g++ gettext gcc git \
+    gperf imagemagick libtool make libglib2.0-dev libhttp-parser-dev \
+    libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev libnss3-dev \
+    libpng-dev libolm-dev libprotobuf-c-dev libqrencode-dev libssl-dev \
+    protobuf-c-compiler libgcrypt20-dev libmarkdown2-dev \
+    libpng-dev libpurple-dev librsvg2-bin libsqlite3-dev libwebp-dev \
+    libgdk-pixbuf2.0-dev libopusfile-dev \
+    libtool-bin netcat-traditional pkg-config sudo && \
+    curl -LO https://get.bitlbee.org/src/bitlbee-"$BITLBEE_VERSION".tar.gz && \
+    git clone https://github.com/EionRobb/purple-hangouts && \
+    git clone https://github.com/EionRobb/purple-discord && \
+    git clone https://github.com/matrix-org/purple-matrix && \
+    git clone https://github.com/EionRobb/purple-teams && \
+    git clone https://github.com/dylex/slack-libpurple && \
+    curl -LO https://github.com/EionRobb/skype4pidgin/archive/"$SKYPE4PIDGIN_VERSION".tar.gz && \
+    curl -LO https://github.com/bitlbee/bitlbee-facebook/archive/v"$FACEBOOK_VERSION".tar.gz && \
+    git clone https://src.alexschroeder.ch/bitlbee-mastodon.git && \
+    git clone https://github.com/BenWiederhake/tdlib-purple
 
-# Define volumes for persistent data
-VOLUME ["/var/lib/bitlbee"]
+RUN tar zxvf bitlbee-"$BITLBEE_VERSION".tar.gz && \
+    cd bitlbee-"$BITLBEE_VERSION" && \
+    ./configure --verbose=1 --jabber=1 --otr=1 --purple=1 --strip=1 && \
+    make -j"$(nproc)" && \
+    make install && \
+    make install-bin && \
+    make install-doc && \
+    make install-dev && \
+    make install-etc && \
+    make install-plugin-otr
+
+RUN cd purple-hangouts && make -j"$(nproc)" && make install
+RUN cd purple-discord && make -j"$(nproc)" && make install
+RUN cd purple-matrix && make -j"$(nproc)" && make install
+RUN cd purple-teams && make -j"$(nproc)" && make install
+RUN cd slack-libpurple && make install
+RUN tar zxvf "$SKYPE4PIDGIN_VERSION".tar.gz && cd "skype4pidgin-$SKYPE4PIDGIN_VERSION/skypeweb" && make -j"$(nproc)" && make install
+RUN tar zxvf v"$FACEBOOK_VERSION".tar.gz && cd "bitlbee-facebook-$FACEBOOK_VERSION" && ./autogen.sh && make -j"$(nproc)" && make install
+RUN cd "bitlbee-mastodon" && sh autogen.sh && ./configure && make -j"$(nproc)" && make install
+RUN cd "tdlib-purple" && ./build_and_install.sh
+
+RUN libtool --finish /usr/local/lib/bitlbee
+
+FROM debian:stable
+
+COPY --from=builder /usr/local/etc/bitlbee/ /usr/local/etc/bitlbee/
+COPY --from=builder /usr/local/lib/bitlbee/ /usr/local/lib/bitlbee/
+COPY --from=builder /usr/local/lib/pkgconfig/ /usr/local/lib/pkgconfig/
+#COPY --from=builder /usr/local/lib/purple-2/ /usr/local/lib/purple-2/
+COPY --from=builder /usr/local/sbin/bitlbee /usr/local/sbin/bitlbee
+COPY --from=builder /usr/local/share/bitlbee/ /usr/local/share/bitlbee/
+COPY --from=builder /usr/local/share/locale/ /usr/local/share/locale/
+COPY --from=builder /usr/local/share/man/ /usr/local/share/man/
+COPY --from=builder /usr/local/share/metainfo/ /usr/local/share/metainfo/
+
+RUN apt update && apt install --no-install-recommends -y \
+    libpurple0 \
+    libotr5
+RUN adduser --system --home /var/lib/bitlbee --disabled-password \
+    --disabled-login --shell /usr/sbin/nologin bitlbee
+RUN touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
 
 EXPOSE 6667
 
 USER bitlbee
+
+# Define volumes for persistent data
+VOLUME ["/var/lib/bitlbee"]
 
 # Needed for VOLUME permissions
 COPY entrypoint.sh /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["/usr/sbin/bitlbee", "-D", "-n", "-v", "-u", "bitlbee"]
+CMD ["/usr/local/sbin/bitlbee", "-D", "-n", "-v", "-u", "bitlbee"]

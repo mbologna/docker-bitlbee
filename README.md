@@ -4,6 +4,7 @@
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/mbologna/docker-bitlbee/build-scan-push.yml?branch=master)
 
 This repository provides a containerized version of [BitlBee](https://www.bitlbee.org/), an IRC gateway for instant messaging services, along with additional plugins for extended functionality (e.g., Skype, Facebook, Discord, Mastodon, and more).
+The image is built for both amd64 and arm64 platforms.
 
 ## Features
 
@@ -175,22 +176,6 @@ kubectl apply -f k8s/bitlbee-stunnel-service.yml
 
 * BitlBee: Internally available on port 6667 within the cluster.
 * Stunnel: Internally available on port 6697 within the cluster.
-
-## CI/CD Pipeline
-
-This project includes a GitHub Actions workflow (build-scan-push.yml) to:
-
-- Lint Dockerfiles and shell scripts using Hadolint and ShellCheck.
-- Build and push Docker images to Docker Hub and GitHub Container Registry.
-- Scan images for vulnerabilities using Trivy.
-
-The image is built for both amd64 and arm64 platforms.
-
-## Security
-
-The container runs as a non-root user (bitlbee) for enhanced security.
-A health check ensures the container is operational and serving requests.
-TLS encryption is supported via stunnel.
 
 ## Resources
 
