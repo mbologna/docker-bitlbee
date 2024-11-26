@@ -1,5 +1,4 @@
 checks:
-  addAllBuiltIn: true
   exclude:
     - "latest-tag"
     - "no-read-only-root-fs"
