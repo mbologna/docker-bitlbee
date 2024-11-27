@@ -52,15 +52,17 @@ WORKDIR /purple-teams
 RUN make -j"$(nproc)" && make install
 WORKDIR /slack-libpurple
 RUN make install
+WORKDIR /
 RUN tar zxvf "$SKYPE4PIDGIN_VERSION".tar.gz
 WORKDIR /skype4pidgin-$SKYPE4PIDGIN_VERSION/skypeweb
 RUN make -j"$(nproc)" && make install
+WORKDIR /
 RUN tar zxvf v"$FACEBOOK_VERSION".tar.gz
 WORKDIR /bitlbee-facebook-$FACEBOOK_VERSION
 RUN ./autogen.sh && make -j"$(nproc)" && make install
 WORKDIR /bitlbee-mastodon
 RUN sh autogen.sh && ./configure && make -j"$(nproc)" && make install
-WORKDIR /tdlib-purples
+WORKDIR /tdlib-purple
 RUN ./build_and_install.sh
 
 WORKDIR /
