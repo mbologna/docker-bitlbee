@@ -1,6 +1,6 @@
-FROM docker.io/buildpack-deps:bookworm-scm AS builder
+FROM docker.io/buildpack-deps:stable-scm AS builder
 
-LABEL org.opencontainers.image.title="BitlBee Docker container" \
+LABEL org.opencontainers.image.title="BitlBee container" \
     org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
     org.opencontainers.image.url="https://github.com/mbologna/docker-bitlbee" \
     org.opencontainers.image.licenses="MIT"
@@ -9,7 +9,7 @@ ENV BITLBEE_VERSION "3.6"
 ENV SKYPE4PIDGIN_VERSION "1.7"
 ENV FACEBOOK_VERSION "1.2.2"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt update && apt dist-upgrade -y && apt install -y --no-install-recommends \
     autoconf automake build-essential cmake g++ gettext gcc git \
     gperf imagemagick libtool make libglib2.0-dev libhttp-parser-dev \
     libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev libnss3-dev \
@@ -52,21 +52,39 @@ RUN cd "tdlib-purple" && ./build_and_install.sh
 
 RUN libtool --finish /usr/local/lib/bitlbee
 
-FROM debian:stable
+RUN rm -fr purple-* && \
+    rm -fr slack-libpurple && \
+    rm -fr skype4pidgin-* && \
+    rm -fr bitlbee-facebook* && \
+    rm -fr bitlbee-mastodon* && \
+    rm -fr tdlib-purple && \
+    rm -fr *.gz && \
+    apt clean && \
+    rm -fr /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-COPY --from=builder /usr/local/etc/bitlbee/ /usr/local/etc/bitlbee/
-COPY --from=builder /usr/local/lib/bitlbee/ /usr/local/lib/bitlbee/
-COPY --from=builder /usr/local/lib/pkgconfig/ /usr/local/lib/pkgconfig/
-#COPY --from=builder /usr/local/lib/purple-2/ /usr/local/lib/purple-2/
-COPY --from=builder /usr/local/sbin/bitlbee /usr/local/sbin/bitlbee
-COPY --from=builder /usr/local/share/bitlbee/ /usr/local/share/bitlbee/
-COPY --from=builder /usr/local/share/locale/ /usr/local/share/locale/
-COPY --from=builder /usr/local/share/man/ /usr/local/share/man/
-COPY --from=builder /usr/local/share/metainfo/ /usr/local/share/metainfo/
+# FROM docker.io/debian:stable-slim
 
-RUN apt update && apt install --no-install-recommends -y \
-    libpurple0 \
-    libotr5
+# COPY --from=builder /usr/local/etc/bitlbee/ /usr/local/etc/bitlbee/
+# COPY --from=builder /usr/local/lib/bitlbee/ /usr/local/lib/bitlbee/
+# COPY --from=builder /usr/local/lib/pkgconfig/ /usr/local/lib/pkgconfig/
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libdiscord.so /usr/lib/x86_64-linux-gnu/purple-2/libdiscord.so
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libhangouts.so /usr/lib/x86_64-linux-gnu/purple-2/libhangouts.so
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libmatrix.so /usr/lib/x86_64-linux-gnu/purple-2/libmatrix.so
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libskypeweb.so /usr/lib/x86_64-linux-gnu/purple-2/libskypeweb.so
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libslack.so /usr/lib/x86_64-linux-gnu/purple-2/libslack.so
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libteams-personal.so /usr/lib/x86_64-linux-gnu/purple-2/libteams-personal.so
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libteams.so /usr/lib/x86_64-linux-gnu/purple-2/libteams.so
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libtelegram-tdlib.so /usr/lib/x86_64-linux-gnu/purple-2/libtelegram-tdlib.so
+# COPY --from=builder /usr/local/sbin/bitlbee /usr/local/sbin/bitlbee
+# COPY --from=builder /usr/local/share/bitlbee/ /usr/local/share/bitlbee/
+# COPY --from=builder /usr/local/share/locale/ /usr/local/share/locale/
+# COPY --from=builder /usr/local/share/man/ /usr/local/share/man/
+# COPY --from=builder /usr/local/share/metainfo/ /usr/local/share/metainfo/
+
+# RUN apt update && apt install --no-install-recommends -y \
+#     libpurple0 \
+#     libotr5
+
 RUN adduser --system --home /var/lib/bitlbee --disabled-password \
     --disabled-login --shell /usr/sbin/nologin bitlbee
 RUN touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
