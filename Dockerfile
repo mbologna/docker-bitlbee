@@ -9,7 +9,8 @@ ENV BITLBEE_VERSION "3.6"
 ENV SKYPE4PIDGIN_VERSION "1.7"
 ENV FACEBOOK_VERSION "1.2.2"
 
-RUN apt update && apt dist-upgrade -y && apt install -y --no-install-recommends \
+WORKDIR "/"
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     autoconf automake build-essential cmake g++ gettext gcc git \
     gperf imagemagick libtool make libglib2.0-dev libhttp-parser-dev \
     libotr5-dev libpurple-dev libgnutls28-dev libjson-glib-dev libnss3-dev \
@@ -27,11 +28,12 @@ RUN apt update && apt dist-upgrade -y && apt install -y --no-install-recommends 
     curl -LO https://github.com/EionRobb/skype4pidgin/archive/"$SKYPE4PIDGIN_VERSION".tar.gz && \
     curl -LO https://github.com/bitlbee/bitlbee-facebook/archive/v"$FACEBOOK_VERSION".tar.gz && \
     git clone https://src.alexschroeder.ch/bitlbee-mastodon.git && \
-    git clone https://github.com/BenWiederhake/tdlib-purple
+    git clone https://github.com/BenWiederhake/tdlib-purple && \
+    rm -fr /var/lib/apt/lists/*
 
-RUN tar zxvf bitlbee-"$BITLBEE_VERSION".tar.gz && \
-    cd bitlbee-"$BITLBEE_VERSION" && \
-    ./configure --verbose=1 --jabber=1 --otr=1 --purple=1 --strip=1 && \
+RUN tar zxvf bitlbee-"$BITLBEE_VERSION".tar.gz
+WORKDIR /bitlbee-"$BITLBEE_VERSION"
+RUN ./configure --verbose=1 --jabber=1 --otr=1 --purple=1 --strip=1 && \
     make -j"$(nproc)" && \
     make install && \
     make install-bin && \
@@ -40,27 +42,39 @@ RUN tar zxvf bitlbee-"$BITLBEE_VERSION".tar.gz && \
     make install-etc && \
     make install-plugin-otr
 
-RUN cd purple-hangouts && make -j"$(nproc)" && make install
-RUN cd purple-discord && make -j"$(nproc)" && make install
-RUN cd purple-matrix && make -j"$(nproc)" && make install
-RUN cd purple-teams && make -j"$(nproc)" && make install
-RUN cd slack-libpurple && make install
-RUN tar zxvf "$SKYPE4PIDGIN_VERSION".tar.gz && cd "skype4pidgin-$SKYPE4PIDGIN_VERSION/skypeweb" && make -j"$(nproc)" && make install
-RUN tar zxvf v"$FACEBOOK_VERSION".tar.gz && cd "bitlbee-facebook-$FACEBOOK_VERSION" && ./autogen.sh && make -j"$(nproc)" && make install
-RUN cd "bitlbee-mastodon" && sh autogen.sh && ./configure && make -j"$(nproc)" && make install
-RUN cd "tdlib-purple" && ./build_and_install.sh
+WORKDIR /purple-hangouts
+RUN make -j"$(nproc)" && make install
+WORKDIR /purple-discord
+RUN make -j"$(nproc)" && make install
+WORKDIR /purple-matrix
+RUN make -j"$(nproc)" && make install
+WORKDIR /purple-teams
+RUN make -j"$(nproc)" && make install
+WORKDIR /slack-libpurple
+RUN make install
+RUN tar zxvf "$SKYPE4PIDGIN_VERSION".tar.gz
+WORKDIR /skype4pidgin-$SKYPE4PIDGIN_VERSION/skypeweb
+RUN make -j"$(nproc)" && make install
+RUN tar zxvf v"$FACEBOOK_VERSION".tar.gz
+WORKDIR /bitlbee-facebook-$FACEBOOK_VERSION
+RUN ./autogen.sh && make -j"$(nproc)" && make install
+WORKDIR /bitlbee-mastodon
+RUN sh autogen.sh && ./configure && make -j"$(nproc)" && make install
+WORKDIR /tdlib-purples
+RUN ./build_and_install.sh
 
+WORKDIR /
 RUN libtool --finish /usr/local/lib/bitlbee
 
-RUN rm -fr purple-* && \
-    rm -fr slack-libpurple && \
-    rm -fr skype4pidgin-* && \
-    rm -fr bitlbee-facebook* && \
-    rm -fr bitlbee-mastodon* && \
-    rm -fr tdlib-purple && \
-    rm -fr *.gz && \
-    apt clean && \
-    rm -fr /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN rm -fr ./purple* && \
+    rm -fr ./slack-libpurple && \
+    rm -fr ./skype4pidgin* && \
+    rm -fr ./bitlbee-facebook* && \
+    rm -fr ./bitlbee-mastodon* && \
+    rm -fr ./tdlib-purple && \
+    rm -fr -- *.gz && \
+    apt-get clean && \
+    rm -fr /tmp/* /var/tmp/*
 
 # FROM docker.io/debian:stable-slim
 
@@ -70,7 +84,7 @@ RUN rm -fr purple-* && \
 # COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libdiscord.so /usr/lib/x86_64-linux-gnu/purple-2/libdiscord.so
 # COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libhangouts.so /usr/lib/x86_64-linux-gnu/purple-2/libhangouts.so
 # COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libmatrix.so /usr/lib/x86_64-linux-gnu/purple-2/libmatrix.so
-# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libskypeweb.so /usr/lib/x86_64-linux-gnu/purple-2/libskypeweb.so
+# COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libskypeweb.so /usr/slib/x86_64-linux-gnu/purple-2/libskypeweb.so
 # COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libslack.so /usr/lib/x86_64-linux-gnu/purple-2/libslack.so
 # COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libteams-personal.so /usr/lib/x86_64-linux-gnu/purple-2/libteams-personal.so
 # COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2/libteams.so /usr/lib/x86_64-linux-gnu/purple-2/libteams.so
@@ -81,7 +95,7 @@ RUN rm -fr purple-* && \
 # COPY --from=builder /usr/local/share/man/ /usr/local/share/man/
 # COPY --from=builder /usr/local/share/metainfo/ /usr/local/share/metainfo/
 
-# RUN apt update && apt install --no-install-recommends -y \
+# RUN apt-get update && apt-get install --no-install-recommends -y \
 #     libpurple0 \
 #     libotr5
 
