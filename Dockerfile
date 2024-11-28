@@ -106,14 +106,13 @@ RUN touch /var/run/bitlbee.pid && chown bitlbee:nogroup /var/run/bitlbee.pid
 
 EXPOSE 6667
 
-USER bitlbee
+# Needed for VOLUME permissions
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x entrypoint.sh
 
 # Define volumes for persistent data
 VOLUME ["/var/lib/bitlbee"]
-
-# Needed for VOLUME permissions
-COPY entrypoint.sh /entrypoint.sh
-
+USER bitlbee
 ENTRYPOINT ["/entrypoint.sh"]
 
 CMD ["/usr/local/sbin/bitlbee", "-D", "-n", "-v", "-u", "bitlbee"]
