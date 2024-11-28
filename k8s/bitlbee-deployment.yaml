@@ -13,6 +13,8 @@ spec:
       labels:
         app: bitlbee
     spec:
+      securityContext:
+        fsGroup: 1001 # Needed for volume permissions
       containers:
         - name: bitlbee
           image: docker.io/mbologna/docker-bitlbee:latest
