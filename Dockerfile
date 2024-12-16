@@ -115,4 +115,4 @@ VOLUME ["/var/lib/bitlbee"]
 USER bitlbee
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["/usr/local/sbin/bitlbee", "-D", "-n", "-v", "-u", "bitlbee"]
+CMD ["/usr/local/sbin/bitlbee", "-F", "-n", "-v", "-u", "bitlbee"]
