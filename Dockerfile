@@ -31,6 +31,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
 
 RUN tar zxvf bitlbee-"$BITLBEE_VERSION".tar.gz
 WORKDIR /bitlbee-"$BITLBEE_VERSION"
+ENV LDFLAGS="-lgcrypt"
 RUN ./configure --verbose=1 --jabber=1 --otr=1 --purple=1 --strip=1 && \
     make -j"$(nproc)" && \
     make install && \
