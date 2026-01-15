@@ -8,12 +8,10 @@ This repository provides a Docker-based setup for running [Bitlbee](https://www.
 ## Features
 
 - **[Bitlbee](https://www.bitlbee.org)**: A popular gateway that connects instant messaging services with IRC. In addition to the [Bitlbee's out of the box supported protocols](https://wiki.bitlbee.org/), these are the pre-installed plugins:
-    - Google Hangouts via [purple-hangouts](https://github.com/EionRobb/purple-hangouts)
     - Discord via [purple-discord](https://github.com/EionRobb/purple-discord)
     - Matrix via [purple-matrix](https://github.com/matrix-org/purple-matrix)
     - Microsoft Teams via [teams](https://github.com/EionRobb/purple-teams)
     - Slack via [slack-libpurple](https://github.com/dylex/slack-libpurple)
-    - Skype via [skype4pidgin](https://github.com/EionRobb/skype4pidgin)
     - Facebook (MQTT) via [bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook)
     - Mastodon via [bitlbee-mastodon](https://alexschroeder.ch/software/Bitlbee_Mastodon)
     - Telegram via [tdlib-purple](https://github.com/BenWiederhake/)
