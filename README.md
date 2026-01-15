@@ -22,6 +22,20 @@ This repository provides a Docker-based setup for running [Bitlbee](https://www.
 
 ## Quick Start
 
+### Requirements
+
+* `/var/lib/bitlbee` must be writable by UID `<bitlbee_uid>`
+
+### Docker
+
+```
+docker volume create bitlbee-data
+docker run \
+  --user $(id -u):$(id -g) \
+  -v bitlbee-data:/var/lib/bitlbee \
+  docker-bitlbee
+```
+
 ### Running Locally with Podman or Docker Compose
 
 1. Clone this repository:
