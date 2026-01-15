@@ -79,34 +79,3 @@ Verify deployment:
 kubectl get pods -n bitlbee
 ```
 Expose the service as needed (e.g., via `NodePort` or `Ingress`).
-
-## CI/CD Workflow
-
-This repository uses GitHub Actions for automated builds and deployments:
-
-* Build and Push: Docker images are built for amd64 and arm64 platforms and pushed to:
-    - Docker Hub: `mbologna/docker-bitlbee:latest`
-    - GitHub Container Registry: `ghcr.io/mbologna/docker-bitlbee:latest`
-
-* Linting: Integrated linters for Dockerfile, shell scripts, and Kubernetes resources.
-* Security Scans: Uses Trivy to scan Docker images for vulnerabilities.
-
-## Local Development
-
-### Building Multi-Arch Images Locally
-
-For multi-architecture builds with Podman:
-
-```
-podman build --platform linux/amd64,linux/arm64 -t mbologna/docker-bitlbee:latest .
-```
-
-Or with Docker:
-
-```
-docker buildx build --platform linux/amd64,linux/arm64 -t mbologna/docker-bitlbee:latest --push .
-```
-
-## Resources
-
-[BitlBee Documentation](https://wiki.bitlbee.org/)
