@@ -41,7 +41,6 @@ RUN curl -fsSLO https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz \
  && git clone --depth=1 https://github.com/matrix-org/purple-matrix.git \
  && git clone --depth=1 https://github.com/EionRobb/purple-teams.git \
  && git clone --depth=1 https://github.com/dylex/slack-libpurple.git \
- && git clone --depth=1 https://src.alexschroeder.ch/bitlbee-mastodon.git \
  && git clone --depth=1 https://github.com/BenWiederhake/tdlib-purple.git
 
 # ---- Build BitlBee
@@ -65,11 +64,6 @@ RUN tar xf ${SKYPE4PIDGIN_VERSION}.tar.gz \
 RUN tar xf v${FACEBOOK_VERSION}.tar.gz \
  && cd bitlbee-facebook-${FACEBOOK_VERSION} \
  && ./autogen.sh && make -j$(nproc) && make install
-
-RUN cd bitlbee-mastodon \
- && ./autogen.sh \
- && ./configure \
- && make -j$(nproc) && make install
 
 RUN cd tdlib-purple && ./build_and_install.sh
 
