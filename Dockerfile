@@ -15,7 +15,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     libpng-dev libolm-dev libprotobuf-c-dev libqrencode-dev libssl-dev \
     protobuf-c-compiler libgcrypt20-dev libmarkdown2-dev \
     libpng-dev libpurple-dev librsvg2-bin libsqlite3-dev libwebp-dev \
-    libgdk-pixbuf2.0-dev libopusfile-dev \
+    libgdk-pixbuf-xlib-2.0-dev libopusfile-dev \
     libtool-bin netcat-traditional pkg-config sudo && \
     curl -LO https://get.bitlbee.org/src/bitlbee-"$BITLBEE_VERSION".tar.gz && \
     git clone https://github.com/EionRobb/purple-hangouts && \
