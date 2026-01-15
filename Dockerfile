@@ -11,7 +11,6 @@ LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.licenses="MIT"
 
 ARG BITLBEE_VERSION=3.6
-ARG SKYPE4PIDGIN_VERSION=1.7
 ARG FACEBOOK_VERSION=1.2.2
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -34,9 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ---- Fetch sources
 RUN curl -fsSLO https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz \
- && curl -fsSLO https://github.com/EionRobb/skype4pidgin/archive/${SKYPE4PIDGIN_VERSION}.tar.gz \
  && curl -fsSLO https://github.com/bitlbee/bitlbee-facebook/archive/v${FACEBOOK_VERSION}.tar.gz \
- && git clone --depth=1 https://github.com/EionRobb/purple-hangouts.git \
  && git clone --depth=1 https://github.com/EionRobb/purple-discord.git \
  && git clone --depth=1 https://github.com/matrix-org/purple-matrix.git \
  && git clone --depth=1 https://github.com/EionRobb/purple-teams.git \
@@ -51,15 +48,11 @@ RUN tar xf bitlbee-${BITLBEE_VERSION}.tar.gz \
  && make install install-bin install-doc install-dev install-etc install-plugin-otr
 
 # ---- Build libpurple plugins
-RUN for d in purple-hangouts purple-discord purple-matrix purple-teams; do \
+RUN for d in purple-discord purple-matrix purple-teams; do \
       cd /build/$d && make -j$(nproc) && make install; \
     done
 
 RUN cd /build/slack-libpurple && make install
-
-RUN tar xf ${SKYPE4PIDGIN_VERSION}.tar.gz \
- && cd skype4pidgin-${SKYPE4PIDGIN_VERSION}/skypeweb \
- && make -j$(nproc) && make install
 
 RUN tar xf v${FACEBOOK_VERSION}.tar.gz \
  && cd bitlbee-facebook-${FACEBOOK_VERSION} \
