@@ -85,14 +85,9 @@ RUN adduser --system \
     bitlbee \
  && install -o bitlbee -g nogroup -m 644 /dev/null /var/run/bitlbee.pid
 
-# ---- Entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod 0755 /entrypoint.sh
-
 VOLUME ["/var/lib/bitlbee"]
 
 USER bitlbee
 EXPOSE 6667
 
-ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/local/sbin/bitlbee", "-F", "-n", "-v", "-u", "bitlbee"]
