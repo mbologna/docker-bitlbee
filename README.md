@@ -13,8 +13,8 @@ This repository provides a Docker-based setup for running [Bitlbee](https://www.
     - Microsoft Teams via [teams](https://github.com/EionRobb/purple-teams)
     - Slack via [slack-libpurple](https://github.com/dylex/slack-libpurple)
     - Facebook (MQTT) via [bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook)
-    - Mastodon via [bitlbee-mastodon](https://alexschroeder.ch/software/Bitlbee_Mastodon)
     - Telegram via [tdlib-purple](https://github.com/BenWiederhake/)
+    - WhatsApp via [purple-gowhatsapp](https://github.com/hoehermann/purple-gowhatsapp)
 - **[Stunnel](https://www.stunnel.org/)**: Adds TLS encryption for secure IRC connections.
 - Multi-architecture support: builds for `linux/amd64` and `linux/arm64`.
 - Kubernetes resources included for deployment in containerized environments.

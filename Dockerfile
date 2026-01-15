@@ -20,7 +20,7 @@ WORKDIR /build
 
 # ---- Build dependencies (single layer, cache-friendly)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    autoconf automake build-essential cmake gettext git gperf \
+    autoconf automake build-essential cmake gettext gcc git gperf \
     imagemagick libtool libtool-bin make pkg-config sudo \
     libglib2.0-dev libhttp-parser-dev libotr5-dev libpurple-dev \
     libgnutls28-dev libjson-glib-dev libnss3-dev libpng-dev \
@@ -38,7 +38,8 @@ RUN curl -fsSLO https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz \
  && git clone --depth=1 https://github.com/matrix-org/purple-matrix.git \
  && git clone --depth=1 https://github.com/EionRobb/purple-teams.git \
  && git clone --depth=1 https://github.com/dylex/slack-libpurple.git \
- && git clone --depth=1 https://github.com/BenWiederhake/tdlib-purple.git
+ && git clone --depth=1 https://github.com/BenWiederhake/tdlib-purple.git \
+ && git clone --recurse-submodules https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow
 
 # ---- Build BitlBee
 RUN tar xf bitlbee-${BITLBEE_VERSION}.tar.gz \
@@ -59,6 +60,10 @@ RUN tar xf v${FACEBOOK_VERSION}.tar.gz \
  && ./autogen.sh && make -j$(nproc) && make install
 
 RUN cd tdlib-purple && ./build_and_install.sh
+
+RUN cmake -S purple-whatsmeow -B build && \
+    cmake --build build && \
+    cmake --install build --strip
 
 RUN libtool --finish /usr/local/lib/bitlbee
 
