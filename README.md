@@ -5,7 +5,8 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
-A Docker container for [BitlBee](https://www.bitlbee.org/) - the IRC gateway to instant messaging networks. This container includes extensive plugin support and optional TLS encryption via Stunnel.
+A Docker container for [BitlBee](https://www.bitlbee.org/) - the IRC gateway to instant messaging networks.
+This container includes extensive plugin support and this repository contains optional TLS encryption via Stunnel container.
 
 ## ✨ Features
 
