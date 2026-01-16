@@ -1,6 +1,7 @@
+---
 name: Build, Scan, and Publish Docker Image
 
-on:
+"on":
   push:
     branches: [main]
     tags: ['v*.*.*']
@@ -8,7 +9,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * 1' # Weekly security scan on Mondays
+    - cron: '0 6 * * 1'  # Weekly security scan on Mondays
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
