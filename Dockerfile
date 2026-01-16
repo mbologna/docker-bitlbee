@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ############################
-# 1️⃣ Builder stage
+# Builder stage
 ############################
 FROM buildpack-deps:stable-scm AS builder
 
@@ -12,92 +12,139 @@ LABEL org.opencontainers.image.title="BitlBee container" \
 
 ARG BITLBEE_VERSION=3.6
 ARG FACEBOOK_VERSION=1.2.2
+ARG TARGETARCH
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LDFLAGS="-lgcrypt"
+ENV DEBIAN_FRONTEND=noninteractive \
+    LDFLAGS="-lgcrypt" \
+    MAKEFLAGS="-j$(nproc)"
 
 WORKDIR /build
 
-# ---- Build dependencies (single layer, cache-friendly)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    autoconf automake build-essential cmake gettext gcc git gperf \
-    imagemagick libtool libtool-bin make pkg-config sudo \
+# Build dependencies - grouped by functionality for better caching
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    # Build tools
+    autoconf automake build-essential cmake gcc git gperf libtool libtool-bin make pkg-config \
+    # Protocol libraries
     libglib2.0-dev libhttp-parser-dev libotr5-dev libpurple-dev \
-    libgnutls28-dev libjson-glib-dev libnss3-dev libpng-dev \
-    libolm-dev libprotobuf-c-dev protobuf-c-compiler \
-    libqrencode-dev libssl-dev libgcrypt20-dev \
-    libmarkdown2-dev librsvg2-bin libsqlite3-dev \
-    libwebp-dev libgdk-pixbuf-xlib-2.0-dev libopusfile-dev \
-    netcat-traditional curl ca-certificates golang \
- && rm -rf /var/lib/apt/lists/*
+    libgnutls28-dev libjson-glib-dev libnss3-dev libssl-dev libgcrypt20-dev \
+    # Media libraries
+    libpng-dev libwebp-dev libgdk-pixbuf-xlib-2.0-dev libopusfile-dev \
+    librsvg2-bin imagemagick \
+    # Additional dependencies
+    libolm-dev libprotobuf-c-dev protobuf-c-compiler libqrencode-dev \
+    libmarkdown2-dev libsqlite3-dev \
+    # Utilities
+    netcat-traditional curl ca-certificates golang gettext sudo
 
-# ---- Fetch sources
-RUN curl -fsSLO https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz \
- && curl -fsSLO https://github.com/bitlbee/bitlbee-facebook/archive/v${FACEBOOK_VERSION}.tar.gz \
- && git clone --depth=1 https://github.com/EionRobb/purple-discord.git \
- && git clone --depth=1 https://github.com/matrix-org/purple-matrix.git \
- && git clone --depth=1 https://github.com/EionRobb/purple-teams.git \
- && git clone --depth=1 https://github.com/dylex/slack-libpurple.git \
- && git clone --depth=1 https://github.com/BenWiederhake/tdlib-purple.git \
- && git clone --recurse-submodules https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow
+# Fetch all sources in parallel where possible
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    curl -fsSL -o bitlbee.tar.gz https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz & \
+    curl -fsSL -o facebook.tar.gz https://github.com/bitlbee/bitlbee-facebook/archive/v${FACEBOOK_VERSION}.tar.gz & \
+    git clone --depth=1 --single-branch https://github.com/EionRobb/purple-discord.git & \
+    git clone --depth=1 --single-branch https://github.com/matrix-org/purple-matrix.git & \
+    git clone --depth=1 --single-branch https://github.com/EionRobb/purple-teams.git & \
+    git clone --depth=1 --single-branch https://github.com/dylex/slack-libpurple.git & \
+    git clone --depth=1 --single-branch https://github.com/BenWiederhake/tdlib-purple.git & \
+    git clone --depth=1 --single-branch --recurse-submodules --shallow-submodules \
+      https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow & \
+    wait
 
-# ---- Build BitlBee
-RUN tar xf bitlbee-${BITLBEE_VERSION}.tar.gz \
- && cd bitlbee-${BITLBEE_VERSION} \
- && ./configure --jabber=1 --otr=1 --purple=1 --strip=1 \
- && make -j$(nproc) \
- && make install install-bin install-doc install-dev install-etc install-plugin-otr
+# Build BitlBee
+RUN tar xf bitlbee.tar.gz && \
+    cd bitlbee-${BITLBEE_VERSION} && \
+    ./configure \
+      --jabber=1 \
+      --otr=1 \
+      --purple=1 \
+      --strip=1 \
+      --ssl=gnutls \
+      --systemdsystemunitdir=no && \
+    make && \
+    make install install-bin install-doc install-dev install-etc install-plugin-otr && \
+    ldconfig
 
-# ---- Build libpurple plugins
-RUN for d in purple-discord purple-matrix purple-teams; do \
-      cd /build/$d && make -j$(nproc) && make install; \
-    done
+# Build libpurple plugins in parallel
+RUN cd purple-discord && make && make install & \
+    cd purple-matrix && make && make install & \
+    cd purple-teams && make && make install & \
+    wait
 
-RUN cd /build/slack-libpurple && make install
+RUN cd slack-libpurple && make install
 
-RUN tar xf v${FACEBOOK_VERSION}.tar.gz \
- && cd bitlbee-facebook-${FACEBOOK_VERSION} \
- && ./autogen.sh && make -j$(nproc) && make install
+RUN tar xf facebook.tar.gz && \
+    cd bitlbee-facebook-${FACEBOOK_VERSION} && \
+    ./autogen.sh && \
+    make && \
+    make install
 
 RUN cd tdlib-purple && ./build_and_install.sh
 
-RUN cmake -S purple-whatsmeow -B build && \
-    cmake --build build && \
-    cmake --install build --strip
+RUN cmake -S purple-whatsmeow -B whatsapp-build -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build whatsapp-build && \
+    cmake --install whatsapp-build --strip
 
-RUN libtool --finish /usr/local/lib/bitlbee
+RUN ldconfig && libtool --finish /usr/local/lib/bitlbee
 
 ############################
-# 2️⃣ Runtime stage
+# Runtime stage
 ############################
 FROM debian:stable-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpurple0 libotr5 libssl3 libgnutls30 ca-certificates \
- && rm -rf /var/lib/apt/lists/*
+# Install runtime dependencies with cache mount
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+      libpurple0 libotr5 libssl3 libgnutls30 libgcrypt20 \
+      libglib2.0-0 libjson-glib-1.0-0 libprotobuf-c1 \
+      libhttp-parser2.9 libsqlite3-0 ca-certificates \
+      netcat-openbsd tini && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# ---- Copy only what is needed
+# Copy binaries and libraries from builder
 COPY --from=builder /usr/local /usr/local
-# Copy purple plugins from the correct architecture directory automatically
-COPY --from=builder /usr/lib/*-linux-gnu/purple-2 /usr/lib/purple-2-temp
-RUN cp -r /usr/lib/purple-2-temp/* /usr/lib/*-linux-gnu/purple-2/ && rm -rf /usr/lib/purple-2-temp
+COPY --from=builder /usr/lib/*-linux-gnu/purple-2 /usr/lib/purple-2-temp/
 
-RUN groupadd -r bitlbee && \
-    useradd --system \
-            --home-dir /var/lib/bitlbee \
-            --shell /usr/sbin/nologin \
-            -g bitlbee bitlbee && \
-    mkdir -p /var/lib/bitlbee && \
-    chown bitlbee:bitlbee /var/lib/bitlbee && \
+# Install purple plugins to correct architecture directory
+RUN ARCH_DIR=$(ls -d /usr/lib/*-linux-gnu 2>/dev/null | head -n1) && \
+    mkdir -p "${ARCH_DIR}/purple-2" && \
+    cp -r /usr/lib/purple-2-temp/* "${ARCH_DIR}/purple-2/" && \
+    rm -rf /usr/lib/purple-2-temp && \
+    ldconfig
+
+# Create bitlbee user and directories with proper permissions
+RUN groupadd -r -g 1000 bitlbee && \
+    useradd --system --uid 1000 --gid 1000 \
+      --home-dir /var/lib/bitlbee \
+      --shell /usr/sbin/nologin \
+      --comment "BitlBee IRC Gateway" \
+      bitlbee && \
+    mkdir -p /var/lib/bitlbee /var/run && \
+    chown -R bitlbee:bitlbee /var/lib/bitlbee && \
     touch /var/run/bitlbee.pid && \
-    chown bitlbee:nogroup /var/run/bitlbee.pid && \
+    chown bitlbee:bitlbee /var/run/bitlbee.pid && \
     chmod 644 /var/run/bitlbee.pid
+
+# Health check script
+COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck.sh
+#!/bin/sh
+nc -z localhost 6667 || exit 1
+EOF
 
 VOLUME ["/var/lib/bitlbee"]
 
 USER bitlbee
+WORKDIR /var/lib/bitlbee
+
 EXPOSE 6667
 
-CMD ["/usr/local/sbin/bitlbee", "-F", "-n", "-v", "-u", "bitlbee"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["/usr/local/bin/healthcheck.sh"]
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["/usr/local/sbin/bitlbee", "-F", "-n", "-v"]
