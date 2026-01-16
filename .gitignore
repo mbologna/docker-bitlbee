@@ -1,13 +1,228 @@
-# Logs
-*.log
+# BitlBee data directory
+data/
+*.xml
+*.db
 
-# Docker
-docker/data/
+# Environment files
 .env
+.env.local
+.env.*.local
 
-# Kubernetes
-k8s/*.secret.yaml
+# Docker volumes
+volumes/
 
 # Build artifacts
-*.o
-*.out
+*.tar.gz
+*.zip
+*.deb
+*.rpm
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.vs/
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Emacs
+\#*\#
+.\#*
+
+# Mac OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# Test coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+build/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+ENV/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+go.sum
+
+# Kubernetes secrets
+k8s/*-secret.yaml
+k8s/secrets/
+
+# TLS/SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+certificates/
+
+# SSH keys
+*.priv
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+
+# GPG keys
+*.gpg
+*.asc
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.tgz
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Application specific
+bitlbee.conf.backup
+*.pid
+
+# CI/CD artifacts
+.github/workflows/*.log
+junit.xml
+test-results/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Ansible
+*.retry
+
+# Helm
+Chart.lock
+charts/*.tgz
+
+# Local testing
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Debug files
+debug.log
+error.log
+
+# Cache directories
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Documentation builds
+site/
+_site/
+.jekyll-cache/
+
+# Package managers
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+Gemfile.lock
+Pipfile.lock
+poetry.lock
+
+# Container scan results
+trivy-results.json
+trivy-results.sarif
+grype-results.json
+grype-results.sarif
+
+# SBOM files
+sbom*.json
+sbom*.xml
+
+# Security scan results
+security-scan-*.txt
+vulnerability-*.json
+
+# Backup files
+*.backup
+backup/
+backups/
+
+# Core dumps
+core
+core.*
+
+# Patch files
+*.patch
+*.diff
+
+# Local configuration
+.local/
+local.config
+
+# Scratch/notes
+scratch/
+notes.txt
+TODO.txt
+NOTES.md
