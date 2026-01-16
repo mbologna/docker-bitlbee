@@ -1,68 +1,122 @@
-version: '3.8'
+version: '3.9'
 
 services:
   bitlbee:
     build:
       context: .
       dockerfile: Dockerfile
+      cache_from:
+        - docker.io/mbologna/docker-bitlbee:latest
     image: docker.io/mbologna/docker-bitlbee:latest
     container_name: bitlbee
     restart: unless-stopped
+
     ports:
-      - "6667:6667"
+      - "${BITLBEE_PORT:-6667}:6667"
+
     volumes:
-      - ./data:/var/lib/bitlbee
-    user: "${UID}:${GID}" # Needed for VOLUME permissions
+      - bitlbee-data:/var/lib/bitlbee
+
+    user: "${UID:-1000}:${GID:-1000}"
+
+    environment:
+      - TZ=${TZ:-UTC}
+
     healthcheck:
-      test: [ "CMD", "nc", "-z", "localhost", "6667" ]
+      test: ["/usr/local/bin/healthcheck.sh"]
       interval: 30s
+      timeout: 5s
       retries: 3
+      start_period: 10s
+
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+        compress: "true"
+
     networks:
       - bitlbee-net
+
     deploy:
       resources:
         limits:
           memory: 512m
           cpus: "1.0"
         reservations:
-          memory: 256m
+          memory: 128m
+          cpus: "0.25"
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
   stunnel:
     image: docker.io/dweomer/stunnel:latest
     container_name: bitlbee-stunnel
-    restart: always
+    restart: unless-stopped
+
     ports:
-      - "16697:6697"
+      - "${STUNNEL_PORT:-16697}:6697"
+
     environment:
       - STUNNEL_SERVICE=bitlbee-stunnel
       - STUNNEL_ACCEPT=6697
       - STUNNEL_CONNECT=bitlbee:6667
+      - STUNNEL_CLIENT=no
+      - TZ=${TZ:-UTC}
+
     depends_on:
-      - bitlbee
+      bitlbee:
+        condition: service_healthy
+
     healthcheck:
-      test: [ "CMD", "nc", "-z", "localhost", "6697" ]
+      test: ["CMD", "nc", "-z", "localhost", "6697"]
       interval: 30s
+      timeout: 5s
       retries: 3
+      start_period: 5s
+
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+        compress: "true"
+
     networks:
       - bitlbee-net
+
     deploy:
       resources:
         limits:
           memory: 256m
-          cpus: "1.0"
+          cpus: "0.5"
         reservations:
-          memory: 128m
+          memory: 64m
+          cpus: "0.1"
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
 networks:
   bitlbee-net:
     driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  bitlbee-data:
+    driver: local
