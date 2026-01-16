@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libqrencode-dev libssl-dev libgcrypt20-dev \
     libmarkdown2-dev librsvg2-bin libsqlite3-dev \
     libwebp-dev libgdk-pixbuf-xlib-2.0-dev libopusfile-dev \
-    netcat-traditional curl ca-certificates \
+    netcat-traditional curl ca-certificates golang \
  && rm -rf /var/lib/apt/lists/*
 
 # ---- Fetch sources
@@ -80,15 +80,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ---- Copy only what is needed
 COPY --from=builder /usr/local /usr/local
-COPY --from=builder /usr/lib/x86_64-linux-gnu/purple-2 /usr/lib/x86_64-linux-gnu/purple-2
+# Copy purple plugins from the correct architecture directory automatically
+COPY --from=builder /usr/lib/*-linux-gnu/purple-2 /usr/lib/purple-2-temp
+RUN cp -r /usr/lib/purple-2-temp/* /usr/lib/*-linux-gnu/purple-2/ && rm -rf /usr/lib/purple-2-temp
 
-# ---- Runtime user
-RUN adduser --system \
-    --home /var/lib/bitlbee \
-    --disabled-login \
-    --shell /usr/sbin/nologin \
-    bitlbee \
- && install -o bitlbee -g nogroup -m 644 /dev/null /var/run/bitlbee.pid
+RUN groupadd -r bitlbee && \
+    useradd --system \
+            --home-dir /var/lib/bitlbee \
+            --shell /usr/sbin/nologin \
+            -g bitlbee bitlbee && \
+    mkdir -p /var/lib/bitlbee && \
+    chown bitlbee:bitlbee /var/lib/bitlbee && \
+    touch /var/run/bitlbee.pid && \
+    chown bitlbee:nogroup /var/run/bitlbee.pid && \
+    chmod 644 /var/run/bitlbee.pid
 
 VOLUME ["/var/lib/bitlbee"]
 
