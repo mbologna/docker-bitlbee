@@ -14,9 +14,7 @@ ARG BITLBEE_VERSION=3.6
 ARG FACEBOOK_VERSION=1.2.2
 ARG TARGETARCH
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    LDFLAGS="-lgcrypt" \
-    MAKEFLAGS="-j$(nproc)"
+ENV DEBIAN_FRONTEND=noninteractive
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 WORKDIR /build
@@ -56,29 +54,41 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # Build BitlBee
 RUN tar xf bitlbee.tar.gz
 WORKDIR /build/bitlbee-${BITLBEE_VERSION}
-RUN ./configure --jabber=1 --otr=1 --purple=1 --strip=1 --ssl=gnutls --systemdsystemunitdir=no && \
+RUN ./configure \
+      --jabber=1 \
+      --otr=1 \
+      --purple=1 \
+      --strip=1 \
+      --ssl=gnutls \
+      --systemdsystemunitdir=no && \
     make -j"$(nproc)" && \
     make install install-bin install-doc install-dev install-etc install-plugin-otr
-
-WORKDIR /build/purple-discord
-RUN make && make install
-
-WORKDIR /build/purple-matrix
-RUN make && make install
-
-WORKDIR /build/purple-teams
-RUN make && make install
-
-WORKDIR /build/slack-libpurple
-RUN make install
 
 WORKDIR /build
 RUN tar xf facebook.tar.gz
 WORKDIR /build/bitlbee-facebook-${FACEBOOK_VERSION}
-RUN ./autogen.sh && make && make install
+RUN ./autogen.sh && \
+    make -j"$(nproc)" && \
+    make install
+
+WORKDIR /build/purple-discord
+RUN make -j"$(nproc)" && make install
+WORKDIR /build/purple-matrix
+RUN make -j"$(nproc)" && make install
+WORKDIR /build/purple-teams
+RUN make -j"$(nproc)" && make install
+
+WORKDIR /build/slack-libpurple
+RUN make install
+
+WORKDIR /build/tdlib-purple
+RUN ./build_and_install.sh
 
 WORKDIR /build/bitlbee-mastodon
-RUN ./autogen.sh && ./configure && make -j"$(nproc)" && make install
+RUN ./autogen.sh && \
+    ./configure && \
+    make -j"$(nproc)" && \
+    make install
 
 WORKDIR /build
 RUN cmake -S purple-whatsmeow -B whatsapp-build -DCMAKE_BUILD_TYPE=Release && \
