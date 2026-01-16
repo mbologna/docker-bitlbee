@@ -47,6 +47,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     git clone --depth=1 --single-branch https://github.com/EionRobb/purple-teams.git & \
     git clone --depth=1 --single-branch https://github.com/dylex/slack-libpurple.git & \
     git clone --depth=1 --single-branch https://github.com/BenWiederhake/tdlib-purple.git & \
+    git clone --depth=1 --single-branch https://github.com/kensanata/bitlbee-mastodon.git & \
     git clone --depth=1 --single-branch --recurse-submodules --shallow-submodules \
       https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow & \
     wait
@@ -78,6 +79,11 @@ RUN tar xf facebook.tar.gz && \
     ./autogen.sh && \
     make && \
     make install
+
+RUN cd bitlbee-mastodon \
+    && ./autogen.sh \
+    && ./configure \
+    && make -j$(nproc) && make install
 
 RUN cd tdlib-purple && ./build_and_install.sh
 
