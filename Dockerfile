@@ -18,6 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LDFLAGS="-lgcrypt" \
     MAKEFLAGS="-j$(nproc)"
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 WORKDIR /build
 
 # Build dependencies - grouped by functionality for better caching
@@ -53,40 +54,33 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     wait
 
 # Build BitlBee
-RUN tar xf bitlbee.tar.gz && \
-    cd bitlbee-${BITLBEE_VERSION} && \
-    ./configure \
-      --jabber=1 \
-      --otr=1 \
-      --purple=1 \
-      --strip=1 \
-      --ssl=gnutls \
-      --systemdsystemunitdir=no && \
-    make && \
-    make install install-bin install-doc install-dev install-etc install-plugin-otr && \
-    ldconfig
+RUN tar xf bitlbee.tar.gz
+WORKDIR /build/bitlbee-${BITLBEE_VERSION}
+RUN ./configure --jabber=1 --otr=1 --purple=1 --strip=1 --ssl=gnutls --systemdsystemunitdir=no && \
+    make -j"$(nproc)" && \
+    make install install-bin install-doc install-dev install-etc install-plugin-otr
 
-# Build libpurple plugins in parallel
-RUN cd purple-discord && make && make install & \
-    cd purple-matrix && make && make install & \
-    cd purple-teams && make && make install & \
-    wait
+WORKDIR /build/purple-discord
+RUN make && make install
 
-RUN cd slack-libpurple && make install
+WORKDIR /build/purple-matrix
+RUN make && make install
 
-RUN tar xf facebook.tar.gz && \
-    cd bitlbee-facebook-${FACEBOOK_VERSION} && \
-    ./autogen.sh && \
-    make && \
-    make install
+WORKDIR /build/purple-teams
+RUN make && make install
 
-RUN cd bitlbee-mastodon \
-    && ./autogen.sh \
-    && ./configure \
-    && make -j$(nproc) && make install
+WORKDIR /build/slack-libpurple
+RUN make install
 
-RUN cd tdlib-purple && ./build_and_install.sh
+WORKDIR /build
+RUN tar xf facebook.tar.gz
+WORKDIR /build/bitlbee-facebook-${FACEBOOK_VERSION}
+RUN ./autogen.sh && make && make install
 
+WORKDIR /build/bitlbee-mastodon
+RUN ./autogen.sh && ./configure && make -j"$(nproc)" && make install
+
+WORKDIR /build
 RUN cmake -S purple-whatsmeow -B whatsapp-build -DCMAKE_BUILD_TYPE=Release && \
     cmake --build whatsapp-build && \
     cmake --install whatsapp-build --strip
@@ -98,6 +92,7 @@ RUN ldconfig && libtool --finish /usr/local/lib/bitlbee
 ############################
 FROM debian:stable-slim
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies with cache mount
@@ -117,7 +112,7 @@ COPY --from=builder /usr/local /usr/local
 COPY --from=builder /usr/lib/*-linux-gnu/purple-2 /usr/lib/purple-2-temp/
 
 # Install purple plugins to correct architecture directory
-RUN ARCH_DIR=$(ls -d /usr/lib/*-linux-gnu 2>/dev/null | head -n1) && \
+RUN ARCH_DIR=$(find /usr/lib -maxdepth 1 -name "*-linux-gnu" | head -n1) && \
     mkdir -p "${ARCH_DIR}/purple-2" && \
     cp -r /usr/lib/purple-2-temp/* "${ARCH_DIR}/purple-2/" && \
     rm -rf /usr/lib/purple-2-temp && \
