@@ -2,13 +2,16 @@ name: Build, Scan & Publish Docker Image
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
+    tags: ['v*.*.*']
   pull_request:
-    branches: [master]
+    branches: [master, main]
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1' # Weekly security scan on Mondays
 
 concurrency:
-  group: docker-bitlbee-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -29,18 +32,33 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
+          failure-threshold: warning
+
+      - name: yamllint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: docker-compose.yml .github/workflows/
+          config_data: |
+            extends: default
+            rules:
+              line-length:
+                max: 120
+                level: warning
 
       - name: ShellCheck
         uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
 
       - name: KubeLinter
+        if: hashFiles('k8s/**') != ''
         uses: stackrox/kube-linter-action@v1
         with:
           directory: k8s
           config: .kube-linter/config.yaml
 
   build:
-    name: Build & Push Image
+    name: Build & Push Multi-Arch Image
     runs-on: ubuntu-latest
     needs: lint
 
@@ -48,6 +66,12 @@ jobs:
       contents: read
       packages: write
       security-events: write
+      id-token: write
+      attestations: write
+
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tags: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout repository
@@ -58,6 +82,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+            image=moby/buildkit:latest
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
@@ -82,12 +110,20 @@ jobs:
             ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
             ${{ env.GHCR_NAMESPACE }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
-            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix={{branch}}-
             type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          labels: |
+            org.opencontainers.image.title=BitlBee
+            org.opencontainers.image.description=BitlBee IRC gateway with plugins
+            org.opencontainers.image.vendor=${{ github.repository_owner }}
 
       - name: Build & Push
-        uses: docker/build-push-action@v5
+        id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
@@ -95,27 +131,141 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ github.workflow }}
+          cache-to: type=gha,mode=max,scope=${{ github.workflow }}
+          provenance: true
+          sbom: true
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: Generate SBOM
+        if: github.event_name != 'pull_request'
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+
+      - name: Upload SBOM artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.cyclonedx.json
+          retention-days: 30
 
   security:
-    name: Security Scan (Trivy)
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      security-events: write
+      contents: read
+
+    strategy:
+      matrix:
+        scanner: [trivy, grype]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        if: matrix.scanner == 'trivy'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          format: sarif
+          output: trivy-results.sarif
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH,MEDIUM
+          timeout: 10m
+
+      - name: Run Grype vulnerability scanner
+        if: matrix.scanner == 'grype'
+        uses: anchore/scan-action@v4
+        with:
+          image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          fail-build: false
+          severity-cutoff: high
+          output-format: sarif
+          output-file: grype-results.sarif
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ matrix.scanner }}-results.sarif
+          category: ${{ matrix.scanner }}
+
+  test:
+    name: Integration Tests
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name != 'pull_request'
 
     steps:
-      - name: Trivy scan
-        uses: aquasecurity/trivy-action@0.20.0
-        with:
-          image-ref: ${{ secrets.DOCKER_USERNAME }}/docker-bitlbee:latest
-          format: sarif
-          output: trivy-results.sarif
-          ignore-unfixed: true
-          vuln-type: os,library
-          severity: CRITICAL,HIGH
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Pull image
+        run: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Test container startup
+        run: |
+          docker run -d --name bitlbee-test \
+            -e UID=1000 -e GID=1000 \
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+
+          # Wait for healthy status
+          for i in {1..30}; do
+            if docker inspect --format='{{.State.Health.Status}}' bitlbee-test | grep -q healthy; then
+              echo "Container is healthy"
+              exit 0
+            fi
+            echo "Waiting for container to be healthy... ($i/30)"
+            sleep 2
+          done
+
+          echo "Container failed to become healthy"
+          docker logs bitlbee-test
+          exit 1
+
+      - name: Test IRC connection
+        run: |
+          # Simple connection test
+          timeout 10s docker exec bitlbee-test nc -zv localhost 6667 || exit 1
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker stop bitlbee-test || true
+          docker rm bitlbee-test || true
+
+  release-notes:
+    name: Generate Release Notes
+    runs-on: ubuntu-latest
+    needs: [build, security, test]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          sarif_file: trivy-results.sarif
+          fetch-depth: 0
+
+      - name: Generate Release Notes
+        id: notes
+        uses: release-drafter/release-drafter@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.notes.outputs.body }}
+          draft: false
+          prerelease: false
