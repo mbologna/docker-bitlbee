@@ -1,11 +1,11 @@
-name: Build, Scan & Publish Docker Image
+name: Build, Scan, and Publish Docker Image
 
 on:
   push:
-    branches: [master, main]
+    branches: [main]
     tags: ['v*.*.*']
   pull_request:
-    branches: [master, main]
+    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: '0 6 * * 1' # Weekly security scan on Mondays
@@ -83,9 +83,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: |
-            network=host
-            image=moby/buildkit:latest
+          driver-opts: network=host
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
@@ -131,8 +129,8 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ github.workflow }}
-          cache-to: type=gha,mode=max,scope=${{ github.workflow }}
+          cache-from: type=gha,scope=buildx-${{ github.job }}
+          cache-to: type=gha,mode=max,scope=buildx-${{ github.job }}
           provenance: true
           sbom: true
           build-args: |
@@ -187,14 +185,26 @@ jobs:
       - name: Run Grype vulnerability scanner
         if: matrix.scanner == 'grype'
         uses: anchore/scan-action@v4
+        continue-on-error: true
         with:
           image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
           fail-build: false
           severity-cutoff: high
           output-format: sarif
-          output-file: grype-results.sarif
+
+      - name: Move Grype results
+        if: matrix.scanner == 'grype'
+        continue-on-error: true
+        run: |
+          if [ -f results.sarif ]; then
+            mv results.sarif grype-results.sarif
+          else
+            echo "Grype results file not found"
+            exit 1
+          fi
 
       - name: Upload SARIF to GitHub Security
+        if: always() && hashFiles(format('{0}-results.sarif', matrix.scanner)) != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ matrix.scanner }}-results.sarif

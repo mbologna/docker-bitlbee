@@ -1,7 +1,7 @@
 # BitlBee Docker Container
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/mbologna/docker-bitlbee)](https://hub.docker.com/r/mbologna/docker-bitlbee)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/mbologna/docker-bitlbee/build-scan-push.yml?branch=master)](https://github.com/mbologna/docker-bitlbee/actions)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/mbologna/docker-bitlbee/build-scan-push.yml?branch=main)](https://github.com/mbologna/docker-bitlbee/actions)
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
@@ -245,7 +245,7 @@ help account
 
 Refer to the individual plugin documentation:
 - [Discord setup](https://github.com/EionRobb/purple-discord/wiki)
-- [Matrix setup](https://github.com/matrix-org/purple-matrix/blob/master/README.md)
+- [Matrix setup](https://github.com/matrix-org/purple-matrix/blob/main/README.md)
 - [Teams setup](https://github.com/EionRobb/purple-teams#usage)
 - [WhatsApp setup](https://github.com/hoehermann/purple-gowhatsapp/wiki)
 
