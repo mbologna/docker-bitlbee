@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     autoconf automake build-essential cmake gcc git gperf libtool libtool-bin make pkg-config \
     # Protocol libraries
     libglib2.0-dev libhttp-parser-dev libotr5-dev libpurple-dev \
-    libgnutls28-dev libjson-glib-dev libnss3-dev libssl-dev libgcrypt20-dev \
+    libgnutls28-dev libjson-glib-dev libnss3-dev libssl-dev libgcrypt20-dev libgcrypt-dev \
     # Media libraries
     libpng-dev libwebp-dev libgdk-pixbuf-xlib-2.0-dev libopusfile-dev \
     librsvg2-bin imagemagick \
