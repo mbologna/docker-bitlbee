@@ -25,6 +25,7 @@ In addition to BitlBee's [built-in protocols](https://wiki.bitlbee.org/) (Jabber
 | Microsoft Teams | purple-teams | [EionRobb/purple-teams](https://github.com/EionRobb/purple-teams) |
 | Slack | slack-libpurple | [dylex/slack-libpurple](https://github.com/dylex/slack-libpurple) |
 | Facebook (MQTT) | bitlbee-facebook | [bitlbee/bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook) |
+| Mastodon | bitlbee-mastodon | [kensanata/bitlbee-mastodon](https://github.com/kensanata/bitlbee-mastodon) |
 | Telegram | tdlib-purple | [BenWiederhake/tdlib-purple](https://github.com/BenWiederhake/tdlib-purple) |
 | WhatsApp | purple-whatsmeow | [hoehermann/purple-gowhatsapp](https://github.com/hoehermann/purple-gowhatsapp) |
 
