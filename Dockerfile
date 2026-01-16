@@ -54,7 +54,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # Build BitlBee
 RUN tar xf bitlbee.tar.gz
 WORKDIR /build/bitlbee-${BITLBEE_VERSION}
-RUN ./configure \
+RUN LDFLAGS="-lgcrypt" ./configure \
       --jabber=1 \
       --otr=1 \
       --purple=1 \
