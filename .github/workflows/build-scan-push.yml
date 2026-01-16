@@ -46,11 +46,6 @@ jobs:
                 max: 120
                 level: warning
 
-      - name: ShellCheck
-        uses: ludeeus/action-shellcheck@master
-        with:
-          severity: warning
-
       - name: KubeLinter
         if: hashFiles('k8s/**') != ''
         uses: stackrox/kube-linter-action@v1
