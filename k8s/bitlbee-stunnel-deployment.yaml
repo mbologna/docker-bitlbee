@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: stunnel
-          image: docker.io/dweomer/stunnel:latest
+          image: docker.io/mbologna/stunnel:latest
           ports:
             - containerPort: 6697
           envFrom:
