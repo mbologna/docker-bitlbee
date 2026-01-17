@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bitlbee-config
+  namespace: bitlbee
+  labels:
+    app.kubernetes.io/name: bitlbee
+    app.kubernetes.io/component: configuration
+data:
+  TZ: "UTC"
+  # Add any other BitlBee configuration here
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stunnel-config
+  namespace: bitlbee
+  labels:
+    app.kubernetes.io/name: bitlbee-stunnel
+    app.kubernetes.io/component: configuration
+data:
+  STUNNEL_SERVICE: "bitlbee-stunnel"
+  STUNNEL_ACCEPT: "6697"
+  STUNNEL_CONNECT: "bitlbee:6667"
+  STUNNEL_CLIENT: "no"
+  TZ: "UTC"

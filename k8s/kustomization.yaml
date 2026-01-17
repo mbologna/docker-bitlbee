@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: bitlbee
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+  # Uncomment to enable optional resources:
+  # - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: bitlbee
+
+# You can add patches, replicas, or image overrides here
+# For example, to change the image tag:
+# images:
+#   - name: docker.io/mbologna/docker-bitlbee
+#     newTag: v1.0.0

@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: stunnel-config
-  namespace: bitlbee
-data:
-  STUNNEL_SERVICE: bitlbee-stunnel
-  STUNNEL_ACCEPT: "6697"
-  STUNNEL_CONNECT: bitlbee:6667
