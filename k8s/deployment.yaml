@@ -1,0 +1,196 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bitlbee
+  namespace: bitlbee
+  labels:
+    app.kubernetes.io/name: bitlbee
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/version: "latest"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # Only one instance can access RWO volume
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bitlbee
+      app.kubernetes.io/component: gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bitlbee
+        app.kubernetes.io/component: gateway
+        app.kubernetes.io/version: "latest"
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: bitlbee
+          image: docker.io/mbologna/docker-bitlbee:latest
+          imagePullPolicy: Always
+
+          ports:
+            - name: irc
+              containerPort: 6667
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: bitlbee-config
+
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/bitlbee
+
+          resources:
+            limits:
+              memory: 512Mi
+              cpu: 1000m
+            requests:
+              memory: 128Mi
+              cpu: 100m
+
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false  # BitlBee needs to write to /var/run
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: bitlbee-data
+
+      # Optional: Add affinity rules for better placement
+      # affinity:
+      #   podAntiAffinity:
+      #     preferredDuringSchedulingIgnoredDuringExecution:
+      #       - weight: 100
+      #         podAffinityTerm:
+      #           labelSelector:
+      #             matchExpressions:
+      #               - key: app.kubernetes.io/name
+      #                 operator: In
+      #                 values:
+      #                   - bitlbee
+      #           topologyKey: kubernetes.io/hostname
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bitlbee-stunnel
+  namespace: bitlbee
+  labels:
+    app.kubernetes.io/name: bitlbee-stunnel
+    app.kubernetes.io/component: tls-proxy
+    app.kubernetes.io/version: "latest"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: bitlbee-stunnel
+      app.kubernetes.io/component: tls-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: bitlbee-stunnel
+        app.kubernetes.io/component: tls-proxy
+        app.kubernetes.io/version: "latest"
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534  # nobody user
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: stunnel
+          image: docker.io/dweomer/stunnel:latest
+          imagePullPolicy: Always
+
+          ports:
+            - name: ircs
+              containerPort: 6697
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: stunnel-config
+
+          resources:
+            limits:
+              memory: 256Mi
+              cpu: 500m
+            requests:
+              memory: 64Mi
+              cpu: 50m
+
+          livenessProbe:
+            tcpSocket:
+              port: 6697
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            tcpSocket:
+              port: 6697
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: run
+              mountPath: /var/run
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: run
+          emptyDir: {}

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitlbee
+  namespace: bitlbee
+  labels:
+    app.kubernetes.io/name: bitlbee
+    app.kubernetes.io/component: gateway
+spec:
+  type: ClusterIP
+  ports:
+    - name: irc
+      protocol: TCP
+      port: 6667
+      targetPort: irc
+  selector:
+    app.kubernetes.io/name: bitlbee
+    app.kubernetes.io/component: gateway
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitlbee-stunnel
+  namespace: bitlbee
+  labels:
+    app.kubernetes.io/name: bitlbee-stunnel
+    app.kubernetes.io/component: tls-proxy
+spec:
+  type: ClusterIP
+  ports:
+    - name: ircs
+      protocol: TCP
+      port: 6697
+      targetPort: ircs
+  selector:
+    app.kubernetes.io/name: bitlbee-stunnel
+    app.kubernetes.io/component: tls-proxy
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours

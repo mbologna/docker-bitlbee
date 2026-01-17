@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bitlbee-data
+  namespace: bitlbee
+  labels:
+    app.kubernetes.io/name: bitlbee
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 128Mi
+  # Uncomment and adjust for your storage class
+  # storageClassName: standard
