@@ -112,21 +112,34 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get install -y --no-install-recommends \
       libpurple0 libotr5 libssl3 libgnutls30 libgcrypt20 \
       libglib2.0-0 libjson-glib-1.0-0 libprotobuf-c1 \
-      libhttp-parser2.9 libsqlite3-0 ca-certificates \
+      libhttp-parser2.9 libsqlite3-0 libopusfile0 \
+      libwebp7 libolm3 libqrencode4 \
+      libstdc++6 zlib1g ca-certificates \
       netcat-openbsd tini && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy binaries and libraries from builder
-COPY --from=builder /usr/local /usr/local
-COPY --from=builder /usr/lib/*-linux-gnu/purple-2 /usr/lib/purple-2-temp/
+COPY --from=builder /usr/local/lib /usr/local/lib
+COPY --from=builder /usr/local/sbin /usr/local/sbin
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/local/share /usr/local/share
+COPY --from=builder /usr/local/etc /usr/local/etc
+
+# Copy purple plugins and their dependencies
+COPY --from=builder /usr/lib/*-linux-gnu/purple-2 /tmp/purple-2/
+COPY --from=builder /usr/share/pixmaps/pidgin /usr/share/pixmaps/pidgin/
 
 # Install purple plugins to correct architecture directory
-RUN ARCH_DIR=$(find /usr/lib -maxdepth 1 -name "*-linux-gnu" | head -n1) && \
+RUN ARCH_DIR=$(ls -d /usr/lib/*-linux-gnu 2>/dev/null | head -n1) && \
     mkdir -p "${ARCH_DIR}/purple-2" && \
-    cp -r /usr/lib/purple-2-temp/* "${ARCH_DIR}/purple-2/" && \
-    rm -rf /usr/lib/purple-2-temp && \
-    ldconfig
+    if [ -d /tmp/purple-2 ]; then \
+      cp -a /tmp/purple-2/* "${ARCH_DIR}/purple-2/" && \
+      rm -rf /tmp/purple-2; \
+    fi && \
+    ldconfig && \
+    # Verify plugins were copied
+    ls -la "${ARCH_DIR}/purple-2/" || echo "Warning: No plugins found"
 
 # Create bitlbee user and directories with proper permissions
 RUN groupadd -r -g 1000 bitlbee && \
