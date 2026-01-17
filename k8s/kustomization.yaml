@@ -4,17 +4,19 @@ kind: Kustomization
 namespace: bitlbee
 
 resources:
-  - namespace.yaml
-  - configmap.yaml
-  - pvc.yaml
-  - deployment.yaml
-  - service.yaml
+- namespace.yaml
+- configmap.yaml
+- pvc.yaml
+- deployment.yaml
+- service.yaml
   # Uncomment to enable optional resources:
   # - ingress.yaml
 
-commonLabels:
-  app.kubernetes.io/managed-by: kustomize
-  app.kubernetes.io/part-of: bitlbee
+labels:
+- includeSelectors: true
+  pairs:
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/part-of: bitlbee
 
 # You can add patches, replicas, or image overrides here
 # For example, to change the image tag:
