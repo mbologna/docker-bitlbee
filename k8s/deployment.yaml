@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,7 +11,7 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate  # Only one instance can access RWO volume
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: bitlbee
@@ -78,7 +79,7 @@ spec:
 
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false  # BitlBee needs to write to /var/run
+            readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1000
             capabilities:
@@ -89,20 +90,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: bitlbee-data
-
-      # Optional: Add affinity rules for better placement
-      # affinity:
-      #   podAntiAffinity:
-      #     preferredDuringSchedulingIgnoredDuringExecution:
-      #       - weight: 100
-      #         podAffinityTerm:
-      #           labelSelector:
-      #             matchExpressions:
-      #               - key: app.kubernetes.io/name
-      #                 operator: In
-      #                 values:
-      #                   - bitlbee
-      #           topologyKey: kubernetes.io/hostname
 ---
 apiVersion: apps/v1
 kind: Deployment
