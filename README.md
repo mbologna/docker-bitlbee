@@ -5,7 +5,17 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
-A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. Includes optional Stunnel for TLS encryption.
+A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. Includes optional Stunnel ([docker-stunnel](https://github.com/mbologna/docker-stunnel)) for TLS encryption and Kubernetes deployment manifests.
+
+## Technical Features
+
+- 🏗️ **Multi-architecture support:** `linux/amd64`, `linux/arm64`
+- 🔒 **Security-hardened:** Non-root user, minimal capabilities, security contexts
+- 📊 **Health checks:** Built-in monitoring with liveness/readiness probes
+- 📦 **SBOM generation:** Software Bill of Materials for supply chain security
+- 🔍 **Automated vulnerability scanning:** Trivy and Grype scans in CI/CD
+- 🚀 **Optimized builds:** Layer caching and multi-stage builds
+- ☸️ **Kubernetes-ready:** Production-grade manifests included
 
 ## Supported Protocols
 
@@ -21,15 +31,6 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 - Telegram ([tdlib-purple](https://github.com/BenWiederhake/tdlib-purple))
 - WhatsApp ([purple-whatsmeow](https://github.com/hoehermann/purple-gowhatsapp))
 
-## Technical Features
-
-- 🏗️ **Multi-architecture support:** `linux/amd64`, `linux/arm64`
-- 🔒 **Security-hardened:** Non-root user, minimal capabilities, security contexts
-- 📊 **Health checks:** Built-in monitoring with liveness/readiness probes
-- 📦 **SBOM generation:** Software Bill of Materials for supply chain security
-- 🔍 **Automated vulnerability scanning:** Trivy and Grype scans in CI/CD
-- 🚀 **Optimized builds:** Layer caching and multi-stage builds
-- ☸️ **Kubernetes-ready:** Production-grade manifests included
 ## Quick Start
 
 ### Docker
