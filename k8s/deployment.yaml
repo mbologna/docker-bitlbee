@@ -130,15 +130,15 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 65534  # nobody user
-        runAsGroup: 65534
-        fsGroup: 65534
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
 
       containers:
         - name: stunnel
-          image: docker.io/dweomer/stunnel:latest
+          image: docker.io/mbologna/docker-stunnel:latest
           imagePullPolicy: Always
 
           ports:
@@ -178,19 +178,23 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-            runAsUser: 65534
+            runAsUser: 1000
             capabilities:
               drop:
                 - ALL
 
           volumeMounts:
+            - name: run
+              mountPath: /var/run/stunnel
+            - name: log
+              mountPath: /var/log/stunnel
             - name: tmp
               mountPath: /tmp
-            - name: run
-              mountPath: /var/run
 
       volumes:
-        - name: tmp
-          emptyDir: {}
         - name: run
+          emptyDir: {}
+        - name: log
+          emptyDir: {}
+        - name: tmp
           emptyDir: {}
