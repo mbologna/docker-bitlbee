@@ -114,6 +114,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       libglib2.0-0 libjson-glib-1.0-0 libprotobuf-c1 \
       libhttp-parser2.9 libsqlite3-0 libopusfile0 \
       libwebp7 libolm3 libqrencode4 \
+      libpng16-16 libgdk-pixbuf-2.0-0 \
       libstdc++6 zlib1g ca-certificates \
       netcat-openbsd tini && \
     apt-get clean && \
@@ -137,9 +138,16 @@ RUN ARCH_DIR=$(ls -d /usr/lib/*-linux-gnu 2>/dev/null | head -n1) && \
       cp -a /tmp/purple-2/* "${ARCH_DIR}/purple-2/" && \
       rm -rf /tmp/purple-2; \
     fi && \
+    # Run ldconfig to update library cache
+    echo "/usr/local/lib" > /etc/ld.so.conf.d/usr-local.conf && \
     ldconfig && \
     # Verify plugins were copied
-    ls -la "${ARCH_DIR}/purple-2/" || echo "Warning: No plugins found"
+    ls -la "${ARCH_DIR}/purple-2/" || echo "Warning: No plugins found" && \
+    # Check for missing dependencies
+    echo "Checking telegram plugin dependencies:" && \
+    ldd "${ARCH_DIR}/purple-2/libtelegram-tdlib.so" | grep "not found" || echo "Telegram OK" && \
+    echo "Checking whatsapp plugin dependencies:" && \
+    ldd "${ARCH_DIR}/purple-2/libwhatsmeow.so" | grep "not found" || echo "WhatsApp OK"
 
 # Create bitlbee user and directories with proper permissions
 RUN groupadd -r -g 1000 bitlbee && \
