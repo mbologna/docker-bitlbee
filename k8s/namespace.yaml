@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bitlbee
+  labels:
+    app.kubernetes.io/name: bitlbee
+    app.kubernetes.io/component: messaging-gateway

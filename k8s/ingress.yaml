@@ -1,0 +1,74 @@
+# Optional: Ingress for exposing BitlBee externally
+# NOTE: IRC over HTTP/HTTPS ingress is non-standard and may not work with all clients
+# Consider using NodePort or LoadBalancer services instead
+
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: bitlbee-nodeport
+#   namespace: bitlbee
+#   labels:
+#     app.kubernetes.io/name: bitlbee
+#     app.kubernetes.io/component: gateway
+# spec:
+#   type: NodePort
+#   ports:
+#     - name: irc
+#       protocol: TCP
+#       port: 6667
+#       targetPort: irc
+#       nodePort: 30667  # Choose a port in the 30000-32767 range
+#   selector:
+#     app.kubernetes.io/name: bitlbee
+#     app.kubernetes.io/component: gateway
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: bitlbee-stunnel-nodeport
+#   namespace: bitlbee
+#   labels:
+#     app.kubernetes.io/name: bitlbee-stunnel
+#     app.kubernetes.io/component: tls-proxy
+# spec:
+#   type: NodePort
+#   ports:
+#     - name: ircs
+#       protocol: TCP
+#       port: 6697
+#       targetPort: ircs
+#       nodePort: 30697  # Choose a port in the 30000-32767 range
+#   selector:
+#     app.kubernetes.io/name: bitlbee-stunnel
+#     app.kubernetes.io/component: tls-proxy
+#   sessionAffinity: ClientIP
+
+# ---
+# For cloud environments with LoadBalancer support:
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: bitlbee-loadbalancer
+#   namespace: bitlbee
+#   labels:
+#     app.kubernetes.io/name: bitlbee
+#     app.kubernetes.io/component: gateway
+#   annotations:
+#     # Cloud-specific annotations, e.g., for AWS:
+#     # service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+#     # service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+# spec:
+#   type: LoadBalancer
+#   ports:
+#     - name: irc
+#       protocol: TCP
+#       port: 6667
+#       targetPort: irc
+#     - name: ircs
+#       protocol: TCP
+#       port: 6697
+#       targetPort: 6697
+#   selector:
+#     app.kubernetes.io/name: bitlbee
+#   sessionAffinity: ClientIP
