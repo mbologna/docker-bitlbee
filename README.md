@@ -5,49 +5,34 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
-A Docker container for [BitlBee](https://www.bitlbee.org/) - the IRC gateway to instant messaging networks.
-This container includes extensive plugin support and this repository contains optional TLS encryption via Stunnel container.
+A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. Includes optional Stunnel for TLS encryption.
 
-## ✨ Features
+## Supported Protocols
 
-### Core Components
+**Built-in:** BitlBee's [built-in protocols](https://wiki.bitlbee.org/)
 
-- **[BitlBee](https://www.bitlbee.org)** - IRC gateway for instant messaging
-- **[Stunnel](https://www.stunnel.org/)** - TLS/SSL encryption wrapper (optional)
+**Via Plugins:**
+- Discord ([purple-discord](https://github.com/EionRobb/purple-discord))
+- Matrix ([purple-matrix](https://github.com/matrix-org/purple-matrix))
+- Microsoft Teams ([purple-teams](https://github.com/EionRobb/purple-teams))
+- Slack ([slack-libpurple](https://github.com/dylex/slack-libpurple))
+- Facebook ([bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook))
+- Mastodon ([bitlbee-mastodon](https://github.com/kensanata/bitlbee-mastodon))
+- Telegram ([tdlib-purple](https://github.com/BenWiederhake/tdlib-purple))
+- WhatsApp ([purple-whatsmeow](https://github.com/hoehermann/purple-gowhatsapp))
 
-### Supported Protocols
+## Technical Features
 
-In addition to BitlBee's [built-in protocols](https://wiki.bitlbee.org/) (Jabber/XMPP, Oscar/AIM, MSN, Twitter, etc.), this container includes:
+- 🏗️ **Multi-architecture support:** `linux/amd64`, `linux/arm64`
+- 🔒 **Security-hardened:** Non-root user, minimal capabilities, security contexts
+- 📊 **Health checks:** Built-in monitoring with liveness/readiness probes
+- 📦 **SBOM generation:** Software Bill of Materials for supply chain security
+- 🔍 **Automated vulnerability scanning:** Trivy and Grype scans in CI/CD
+- 🚀 **Optimized builds:** Layer caching and multi-stage builds
+- ☸️ **Kubernetes-ready:** Production-grade manifests included
+## Quick Start
 
-| Protocol | Plugin | Repository |
-|----------|--------|------------|
-| Discord | purple-discord | [EionRobb/purple-discord](https://github.com/EionRobb/purple-discord) |
-| Matrix | purple-matrix | [matrix-org/purple-matrix](https://github.com/matrix-org/purple-matrix) |
-| Microsoft Teams | purple-teams | [EionRobb/purple-teams](https://github.com/EionRobb/purple-teams) |
-| Slack | slack-libpurple | [dylex/slack-libpurple](https://github.com/dylex/slack-libpurple) |
-| Facebook (MQTT) | bitlbee-facebook | [bitlbee/bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook) |
-| Mastodon | bitlbee-mastodon | [kensanata/bitlbee-mastodon](https://github.com/kensanata/bitlbee-mastodon) |
-| Telegram | tdlib-purple | [BenWiederhake/tdlib-purple](https://github.com/BenWiederhake/tdlib-purple) |
-| WhatsApp | purple-whatsmeow | [hoehermann/purple-gowhatsapp](https://github.com/hoehermann/purple-gowhatsapp) |
-
-### Technical Features
-
-- 🏗️ Multi-architecture support: `linux/amd64`, `linux/arm64`
-- 🔒 Security-hardened with minimal capabilities
-- 📊 Health checks and monitoring ready
-- 🚀 Optimized build with layer caching
-- 📦 SBOM and provenance attestations
-- 🔍 Automated vulnerability scanning
-- ☸️ Kubernetes manifests included
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker 20.10+ or Podman 3.0+
-- docker-compose or podman-compose (optional, for orchestration)
-
-### Option 1: Docker Run
+### Docker
 
 ```bash
 # Create a volume for persistent data
@@ -62,206 +47,147 @@ docker run -d \
   mbologna/docker-bitlbee:latest
 ```
 
-### Option 2: Docker Compose (Recommended)
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/mbologna/docker-bitlbee.git
-   cd docker-bitlbee
-   ```
-
-2. **Create environment file:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your preferred settings
-   ```
-
-3. **Start the services:**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access BitlBee:**
-   - Plain IRC: `localhost:6667`
-   - TLS/SSL (via Stunnel): `localhost:16697`
-
-### Option 3: Podman
+### Docker Compose
 
 ```bash
-# Using podman-compose
-podman-compose up -d
+# Clone repository
+git clone https://github.com/mbologna/docker-bitlbee.git
+cd docker-bitlbee
 
-# Or with podman directly
-podman run -d \
-  --name bitlbee \
-  --user $(id -u):$(id -g) \
-  -p 6667:6667 \
-  -v bitlbee-data:/var/lib/bitlbee \
-  docker.io/mbologna/docker-bitlbee:latest
+# Configure environment
+cp .env.example .env
+# Edit .env with your UID/GID
+
+# Start services
+docker-compose up -d
+
+# Access BitlBee
+# Plain IRC: localhost:6667
+# TLS IRC:   localhost:16697
 ```
 
-## ⚙️ Configuration
+#### Docker Compose Configuration
 
-### Environment Variables
+###### Environment Variables
 
-Configure the container using a `.env` file or environment variables:
+Create a `.env` file:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `UID` | `1000` | User ID for file permissions |
-| `GID` | `1000` | Group ID for file permissions |
-| `BITLBEE_PORT` | `6667` | BitlBee IRC port |
-| `STUNNEL_PORT` | `16697` | Stunnel TLS port |
-| `TZ` | `UTC` | Timezone |
-
-**Example `.env` file:**
 ```env
-UID=1000
-GID=1000
-BITLBEE_PORT=6667
-STUNNEL_PORT=16697
-TZ=Europe/Rome
+UID=1000              # User ID for file permissions
+GID=1000              # Group ID for file permissions
+BITLBEE_PORT=6667     # BitlBee port (default: 6667)
+STUNNEL_PORT=16697    # Stunnel TLS port (default: 16697)
+TZ=UTC                # Timezone
 ```
 
-### Volume Mounts
+##### Data Persistence
 
-The container uses `/var/lib/bitlbee` for persistent data:
-- User accounts
-- Configuration files
-- Plugin settings
+Data is stored in `./data` directory or the `bitlbee-data` named volume.
 
-**Important:** Ensure the volume is writable by the user specified in `UID:GID`.
 
-### Custom Configuration
-
-To use a custom BitlBee configuration:
+### Kubernetes
 
 ```bash
-# Create your config
-mkdir -p ./data
-# Place your bitlbee.conf in ./data
+# Deploy to cluster
+kubectl apply -f k8s/
 
-# Mount it
-docker run -d \
-  --name bitlbee \
-  -v $(pwd)/data:/var/lib/bitlbee \
-  mbologna/docker-bitlbee:latest
+# Check status
+kubectl get pods -n bitlbee
+
+# Access from within cluster
+# Plain: bitlbee.bitlbee.svc.cluster.local:6667
+# TLS:   bitlbee-stunnel.bitlbee.svc.cluster.local:6697
+
+# Port forward for external access
+kubectl port-forward -n bitlbee svc/bitlbee 6667:6667
 ```
 
-## 🔐 Security
+#### Kubernetes Configuration
 
-### TLS/SSL Encryption
+##### Data Persistence
 
-The included Stunnel service provides encrypted IRC connections:
+Managed by PersistentVolumeClaim (default: 128Mi, configurable in `k8s/pvc.yaml`).
 
-```bash
-# Connect with SSL-enabled IRC client
-/server localhost 16697 -ssl
+##### Exposing Services
+
+Edit `k8s/service.yaml` to change service type:
+
+**NodePort** (for bare-metal clusters):
+```yaml
+spec:
+  type: NodePort
+  ports:
+    - port: 6667
+      nodePort: 30667  # Choose 30000-32767
 ```
 
-### Security Features
-
-- ✅ Runs as non-root user
-- ✅ Minimal Linux capabilities
-- ✅ `no-new-privileges` security option
-- ✅ Regular vulnerability scanning
-- ✅ SBOM generation for supply chain security
-
-### Health Checks
-
-Built-in health checks monitor service availability:
-
-```bash
-# Check container health
-docker inspect bitlbee --format='{{.State.Health.Status}}'
-
-# View health check logs
-docker inspect bitlbee --format='{{json .State.Health}}' | jq
+**LoadBalancer** (for cloud providers):
+```yaml
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 6667
 ```
 
-## 📊 Monitoring
+##### Resource Limits
 
-### Logs
-
-```bash
-# View logs
-docker-compose logs -f bitlbee
-
-# Follow specific service
-docker-compose logs -f stunnel
+Edit `k8s/deployment.yaml`:
+```yaml
+resources:
+  limits:
+    memory: 1Gi    # Increase as needed
+    cpu: 2000m
+  requests:
+    memory: 256Mi
+    cpu: 200m
 ```
 
-### Resource Usage
+##### Storage Size
 
-```bash
-# Check resource consumption
-docker stats bitlbee bitlbee-stunnel
+Edit `k8s/pvc.yaml`:
+```yaml
+resources:
+  requests:
+    storage: 5Gi  # Adjust size
 ```
 
-## 🎮 Using BitlBee
+##### Timezone Configuration
+
+Edit `k8s/configmap.yaml`:
+```yaml
+data:
+  TZ: "Europe/Rome"  # Change timezone
+```
+
+## Using BitlBee
 
 ### First-Time Setup
 
-1. **Connect to BitlBee:**
+1. Connect to BitlBee:
    ```
    /server localhost 6667
    ```
 
-2. **Register your account:**
+2. Register an account:
    ```
    register <password>
    ```
 
-3. **Add an account (example: Discord):**
+3. Add a messaging account:
    ```
-   account add discord <email> <password>
-   account discord on
+   account add <protocol> <username> <password>
+   account <id> on
    ```
 
-4. **Save configuration:**
+4. Save configuration:
    ```
    save
    ```
 
-### Useful Commands
+### Example: Discord
 
-```irc
-# List available protocols
-account list
-
-# Add account
-account add <protocol> <username> <password>
-
-# Enable account
-account <id> on
-
-# Join channels
-chat add <account> <channel>
-
-# Get help
-help
-help account
 ```
-
-### Protocol-Specific Setup
-
-Refer to the individual plugin documentation:
-- [Discord setup](https://github.com/EionRobb/purple-discord/wiki)
-- [Matrix setup](https://github.com/matrix-org/purple-matrix/blob/main/README.md)
-- [Teams setup](https://github.com/EionRobb/purple-teams#usage)
-- [WhatsApp setup](https://github.com/hoehermann/purple-gowhatsapp/wiki)
-
-## ☸️ Kubernetes Deployment
-
-Kubernetes manifests are available in the `k8s/` directory:
-
-```bash
-# Deploy to Kubernetes
-kubectl apply -f k8s/
-
-# Check deployment
-kubectl get pods -n bitlbee
-
-# Access logs
-kubectl logs -n bitlbee -l app=bitlbee -f
+account add discord your-email@example.com your-password
+account discord on
+save
 ```
