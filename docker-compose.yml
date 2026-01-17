@@ -56,35 +56,57 @@ services:
       - NET_BIND_SERVICE
 
   stunnel:
-    image: docker.io/mbologna/stunnel:latest
+    image: docker.io/mbologna/docker-stunnel:latest
     container_name: bitlbee-stunnel
     restart: unless-stopped
+
     ports:
       - "${STUNNEL_PORT:-16697}:6697"
+
     environment:
       - STUNNEL_SERVICE=bitlbee-stunnel
       - STUNNEL_ACCEPT=6697
       - STUNNEL_CONNECT=bitlbee:6667
       - STUNNEL_CLIENT=no
       - TZ=${TZ:-UTC}
+
     depends_on:
       bitlbee:
         condition: service_healthy
+
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "6697"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 5s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        compress: "true"
+
     networks:
       - bitlbee-net
-    # Add these capabilities so stunnel can manage its own process identity
-    cap_add:
-      - SETGID
-      - SETUID
-      - NET_BIND_SERVICE
+
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+        reservations:
+          memory: 64m
+          cpus: "0.1"
+
     security_opt:
       - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
 
 networks:
   bitlbee-net:
