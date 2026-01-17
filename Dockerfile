@@ -142,12 +142,7 @@ RUN ARCH_DIR=$(ls -d /usr/lib/*-linux-gnu 2>/dev/null | head -n1) && \
     echo "/usr/local/lib" > /etc/ld.so.conf.d/usr-local.conf && \
     ldconfig && \
     # Verify plugins were copied
-    ls -la "${ARCH_DIR}/purple-2/" || echo "Warning: No plugins found" && \
-    # Check for missing dependencies
-    echo "Checking telegram plugin dependencies:" && \
-    ldd "${ARCH_DIR}/purple-2/libtelegram-tdlib.so" | grep "not found" || echo "Telegram OK" && \
-    echo "Checking whatsapp plugin dependencies:" && \
-    ldd "${ARCH_DIR}/purple-2/libwhatsmeow.so" | grep "not found" || echo "WhatsApp OK"
+    ls -la "${ARCH_DIR}/purple-2/" || echo "Warning: No plugins found"
 
 # Create bitlbee user and directories with proper permissions
 RUN groupadd -r -g 1000 bitlbee && \
