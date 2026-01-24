@@ -90,7 +90,7 @@ Data is stored in `./data` directory or the `bitlbee-data` named volume.
 
 ```bash
 # Deploy to cluster
-kubectl apply -k k8s/
+kubectl apply -f k8s/
 
 # Check status
 kubectl get pods -n bitlbee
