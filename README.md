@@ -192,3 +192,7 @@ account add discord your-email@example.com your-password
 account discord on
 save
 ```
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=mbologna/docker-bitlbee&type=date&legend=top-left)](https://www.star-history.com/#mbologna/docker-bitlbee&type=date&legend=top-left)
