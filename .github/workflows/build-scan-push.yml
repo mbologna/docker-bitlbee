@@ -178,6 +178,10 @@ jobs:
           severity: CRITICAL,HIGH,MEDIUM
           timeout: 10m
 
+      - name: Clear stale Grype DB cache
+        if: matrix.scanner == 'grype'
+        run: rm -rf ~/.cache/grype/db
+
       - name: Run Grype vulnerability scanner
         if: matrix.scanner == 'grype'
         uses: anchore/scan-action@v4
