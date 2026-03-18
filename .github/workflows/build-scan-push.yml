@@ -178,30 +178,20 @@ jobs:
           severity: CRITICAL,HIGH,MEDIUM
           timeout: 10m
 
-      - name: Clear stale Grype DB cache
+      - name: Install Grype
         if: matrix.scanner == 'grype'
-        run: rm -rf ~/.cache/grype/db
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Update Grype DB
+        if: matrix.scanner == 'grype'
+        run: grype db update
 
       - name: Run Grype vulnerability scanner
         if: matrix.scanner == 'grype'
-        uses: anchore/scan-action@v4
-        continue-on-error: true
-        with:
-          image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-          fail-build: false
-          severity-cutoff: high
-          output-format: sarif
-
-      - name: Move Grype results
-        if: matrix.scanner == 'grype'
         continue-on-error: true
         run: |
-          if [ -f results.sarif ]; then
-            mv results.sarif grype-results.sarif
-          else
-            echo "Grype results file not found"
-            exit 1
-          fi
+          grype "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest" \
+            -o sarif > grype-results.sarif
 
       - name: Upload SARIF to GitHub Security
         if: always() && hashFiles(format('{0}-results.sarif', matrix.scanner)) != ''
