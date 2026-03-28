@@ -101,8 +101,8 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: |
-            ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}
             ${{ env.GHCR_NAMESPACE }}/${{ env.IMAGE_NAME }}
+            ${{ env.DOCKERHUB_NAMESPACE != '' && format('{0}/{1}', env.DOCKERHUB_NAMESPACE, env.IMAGE_NAME) || '' }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix={{branch}}-
