@@ -1,4 +1,3 @@
----
 name: Dependabot auto-merge
 on: pull_request
 
@@ -20,6 +19,13 @@ jobs:
           steps.metadata.outputs.update-type == 'version-update:semver-minor' ||
           steps.metadata.outputs.update-type == 'version-update:semver-patch'
         run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Request review for major updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: gh pr edit "$PR_URL" --add-reviewer mbologna
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
