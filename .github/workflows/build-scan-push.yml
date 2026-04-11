@@ -105,7 +105,7 @@ jobs:
             ${{ env.DOCKERHUB_NAMESPACE != '' && format('{0}/{1}', env.DOCKERHUB_NAMESPACE, env.IMAGE_NAME) || '' }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-
+            type=sha,prefix=sha-
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
