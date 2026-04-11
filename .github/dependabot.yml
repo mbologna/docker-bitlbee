@@ -7,6 +7,8 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    reviewers:
+      - "mbologna"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -14,3 +16,6 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+
+    reviewers:
+      - "mbologna"
