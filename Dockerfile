@@ -12,9 +12,9 @@ LABEL org.opencontainers.image.title="BitlBee container" \
 
 ARG BITLBEE_VERSION=3.6
 # Check https://github.com/girlbossceo/conduwuit/releases for the latest version
-ARG CONDUWUIT_VERSION=0.5.0
+ARG CONDUWUIT_VERSION=0.4.6
 # Check https://github.com/mautrix/meta/releases for the latest version
-ARG MAUTRIX_META_VERSION=0.4.3
+ARG MAUTRIX_META_VERSION=0.2604.0
 ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -73,10 +73,10 @@ RUN case "${TARGETARCH}" in \
       *) echo "Unsupported arch: ${TARGETARCH}"; exit 1   ;; \
     esac && \
     curl -fsSL -o /usr/local/bin/conduwuit \
-      "https://github.com/girlbossceo/conduwuit/releases/download/v${CONDUWUIT_VERSION}/conduwuit-${CONDUWUIT_ARCH}-unknown-linux-musl" && \
+      "https://github.com/girlbossceo/conduwuit/releases/download/v${CONDUWUIT_VERSION}/static-${CONDUWUIT_ARCH}-unknown-linux-musl" && \
     chmod +x /usr/local/bin/conduwuit && \
     curl -fsSL -o /usr/local/bin/mautrix-meta \
-      "https://github.com/mautrix/meta/releases/download/v${MAUTRIX_META_VERSION}/mautrix-meta_linux_${MM_ARCH}" && \
+      "https://github.com/mautrix/meta/releases/download/v${MAUTRIX_META_VERSION}/mautrix-meta-${MM_ARCH}" && \
     chmod +x /usr/local/bin/mautrix-meta
 
 WORKDIR /build/purple-discord
