@@ -153,11 +153,7 @@ allow_federation = false
 allow_registration = true
 registration_token = "${REG_TOKEN}"
 
-# Tell conduwuit about the mautrix-meta Facebook bridge appservice
-app_service_config_files = ["${MAUTRIX_DIR}/registration.yaml"]
-
-[global.log]
-filter = "warn,conduwuit=info"
+log = "warn,conduwuit=info"
 EOF
 
     echo ""

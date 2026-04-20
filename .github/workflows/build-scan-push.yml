@@ -224,11 +224,18 @@ jobs:
           # Allow up to 90s: first-run generates conduwuit + mautrix-meta configs
           # before supervisord starts all three processes
           for i in {1..45}; do
-            if docker inspect --format='{{.State.Health.Status}}' bitlbee-test | grep -q healthy; then
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' bitlbee-test 2>/dev/null)
+            RUNNING=$(docker inspect --format='{{.State.Running}}' bitlbee-test 2>/dev/null)
+            if [ "$RUNNING" != "true" ]; then
+              echo "Container stopped unexpectedly"
+              docker logs bitlbee-test
+              exit 1
+            fi
+            if [ "$STATUS" = "healthy" ]; then
               echo "Container is healthy"
               exit 0
             fi
-            echo "Waiting for container to be healthy... ($i/45)"
+            echo "Waiting for container to be healthy... ($i/45) [status=$STATUS]"
             sleep 2
           done
 
