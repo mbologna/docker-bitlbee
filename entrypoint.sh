@@ -27,9 +27,13 @@ mkdir -p "${CONDUWUIT_DIR}/db" "${MAUTRIX_DIR}"
 if [ ! -f "${MAUTRIX_DIR}/registration.yaml" ]; then
     echo "[init] First run detected — generating mautrix-meta registration tokens..."
 
-    # Generate 64-char hex tokens without openssl (coreutils only)
+    # Generate 64-char hex tokens without openssl (coreutils only).
+    # pipefail must be off here: tr gets SIGPIPE (exit 141) when head exits,
+    # which would abort the script under set -euo pipefail.
+    set +o pipefail
     AS_TOKEN=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 64)
     HS_TOKEN=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 64)
+    set -o pipefail
 
     # Appservice registration — read by conduwuit at startup.
     # The regex defines which Matrix user IDs the bridge is allowed to create
@@ -130,8 +134,11 @@ fi
 if [ ! -f "${CONDUWUIT_DIR}/conduwuit.toml" ]; then
     echo "[init] Generating conduwuit config..."
 
-    # Allow overriding the registration token via environment variable
+    # Allow overriding the registration token via environment variable.
+    # pipefail off for the same SIGPIPE reason as the token generation above.
+    set +o pipefail
     REG_TOKEN="${MATRIX_REGISTRATION_TOKEN:-$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 32)}"
+    set -o pipefail
 
     cat > "${CONDUWUIT_DIR}/conduwuit.toml" <<EOF
 [global]
