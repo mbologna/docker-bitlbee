@@ -26,7 +26,7 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 - Matrix ([purple-matrix](https://github.com/matrix-org/purple-matrix))
 - Microsoft Teams ([purple-teams](https://github.com/EionRobb/purple-teams))
 - Slack ([slack-libpurple](https://github.com/dylex/slack-libpurple))
-- Facebook ([bitlbee-facebook](https://github.com/bitlbee/bitlbee-facebook))
+- Facebook Messenger ([mautrix-meta](https://github.com/mautrix/meta) via built-in Matrix homeserver)
 - Mastodon ([bitlbee-mastodon](https://github.com/kensanata/bitlbee-mastodon))
 - Telegram ([tdlib-purple](https://github.com/BenWiederhake/tdlib-purple))
 - WhatsApp ([purple-whatsmeow](https://github.com/hoehermann/purple-gowhatsapp))
@@ -74,11 +74,13 @@ docker-compose up -d
 Create a `.env` file:
 
 ```env
-UID=1000              # User ID for file permissions
-GID=1000              # Group ID for file permissions
-BITLBEE_PORT=6667     # BitlBee port (default: 6667)
-STUNNEL_PORT=16697    # Stunnel TLS port (default: 16697)
-TZ=UTC                # Timezone
+UID=1000                        # User ID for file permissions
+GID=1000                        # Group ID for file permissions
+BITLBEE_PORT=6667               # BitlBee port (default: 6667)
+STUNNEL_PORT=16697              # Stunnel TLS port (default: 16697)
+TZ=UTC                          # Timezone
+MATRIX_REGISTRATION_TOKEN=      # Optional: set a fixed Matrix registration token
+                                 # (auto-generated on first run if left empty)
 ```
 
 ##### Data Persistence
@@ -192,6 +194,45 @@ account add discord your-email@example.com your-password
 account discord on
 save
 ```
+
+### Example: Facebook Messenger (with 2FA)
+
+Facebook Messenger is bridged via an embedded [Matrix](https://matrix.org/) homeserver ([conduwuit](https://github.com/girlbossceo/conduwuit)) and a [mautrix-meta](https://github.com/mautrix/meta) bridge. Both run inside the same container — no extra services needed.
+
+**On first container start**, look for the Matrix registration token in the logs:
+
+```
+docker logs bitlbee | grep "registration token"
+# or set MATRIX_REGISTRATION_TOKEN in your .env to choose your own
+```
+
+**In your IRC client:**
+
+1. Register a local Matrix account (one-time setup):
+   ```
+   register_matrix <your-matrix-username> <password> <registration-token>
+   ```
+   Or, using the raw Matrix account add:
+   ```
+   account add matrix <username>@localhost <password> http://localhost:6167
+   ```
+   When BitlBee asks for a registration token, paste the one from the logs.
+
+2. Enable the account:
+   ```
+   account matrix on
+   ```
+
+3. Start a conversation with the bridge bot to link your Facebook account:
+   ```
+   /msg @facebookbot:localhost login
+   ```
+   The bot will guide you through a QR code or link-based login — this works with 2FA and does not use the old (broken) mobile API.
+
+4. Once linked, your Facebook contacts appear as channels/users in BitlBee. Save:
+   ```
+   save
+   ```
 
 ## Star History
 

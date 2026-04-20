@@ -12,6 +12,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 128Mi
+      # conduwuit (RocksDB) + mautrix-meta (SQLite) + BitlBee data need more than the old 128Mi
+      storage: 1Gi
   # Uncomment and adjust for your storage class
   # storageClassName: standard

@@ -9,7 +9,9 @@ metadata:
     app.kubernetes.io/component: configuration
 data:
   TZ: "UTC"
-  # Add any other BitlBee configuration here
+  # Optional: set a fixed Matrix registration token used to create accounts on the
+  # built-in conduwuit homeserver. Auto-generated on first run if left empty.
+  # MATRIX_REGISTRATION_TOKEN: "change-me"
 ---
 apiVersion: v1
 kind: ConfigMap

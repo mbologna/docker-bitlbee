@@ -218,15 +218,17 @@ jobs:
         run: |
           docker run -d --name bitlbee-test \
             -e UID=1000 -e GID=1000 \
+            -e MATRIX_REGISTRATION_TOKEN=ci-test-token \
             ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
 
-          # Wait for healthy status
-          for i in {1..30}; do
+          # Allow up to 90s: first-run generates conduwuit + mautrix-meta configs
+          # before supervisord starts all three processes
+          for i in {1..45}; do
             if docker inspect --format='{{.State.Health.Status}}' bitlbee-test | grep -q healthy; then
               echo "Container is healthy"
               exit 0
             fi
-            echo "Waiting for container to be healthy... ($i/30)"
+            echo "Waiting for container to be healthy... ($i/45)"
             sleep 2
           done
 

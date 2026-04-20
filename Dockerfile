@@ -11,7 +11,10 @@ LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.licenses="MIT"
 
 ARG BITLBEE_VERSION=3.6
-ARG FACEBOOK_VERSION=1.2.2
+# Check https://github.com/girlbossceo/conduwuit/releases for the latest version
+ARG CONDUWUIT_VERSION=0.5.0
+# Check https://github.com/mautrix/meta/releases for the latest version
+ARG MAUTRIX_META_VERSION=0.4.3
 ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -40,7 +43,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Fetch all sources in parallel where possible
 RUN --mount=type=cache,target=/root/.cache/go-build \
     curl -fsSL -o bitlbee.tar.gz https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz & \
-    curl -fsSL -o facebook.tar.gz https://github.com/bitlbee/bitlbee-facebook/archive/v${FACEBOOK_VERSION}.tar.gz & \
     git clone --depth=1 --single-branch https://github.com/EionRobb/purple-discord.git & \
     git clone --depth=1 --single-branch https://github.com/matrix-org/purple-matrix.git & \
     git clone --depth=1 --single-branch https://github.com/EionRobb/purple-teams.git & \
@@ -64,12 +66,18 @@ RUN LDFLAGS="-lgcrypt" ./configure \
     make -j"$(nproc)" && \
     make install install-bin install-doc install-dev install-etc install-plugin-otr
 
-WORKDIR /build
-RUN tar xf facebook.tar.gz
-WORKDIR /build/bitlbee-facebook-${FACEBOOK_VERSION}
-RUN ./autogen.sh && \
-    make -j"$(nproc)" && \
-    make install
+# Download conduwuit (Matrix homeserver) and mautrix-meta (Facebook bridge) — statically linked, no extra deps
+RUN case "${TARGETARCH}" in \
+      amd64) CONDUWUIT_ARCH="x86_64"  ; MM_ARCH="amd64" ;; \
+      arm64) CONDUWUIT_ARCH="aarch64" ; MM_ARCH="arm64"  ;; \
+      *) echo "Unsupported arch: ${TARGETARCH}"; exit 1   ;; \
+    esac && \
+    curl -fsSL -o /usr/local/bin/conduwuit \
+      "https://github.com/girlbossceo/conduwuit/releases/download/v${CONDUWUIT_VERSION}/conduwuit-${CONDUWUIT_ARCH}-unknown-linux-musl" && \
+    chmod +x /usr/local/bin/conduwuit && \
+    curl -fsSL -o /usr/local/bin/mautrix-meta \
+      "https://github.com/mautrix/meta/releases/download/v${MAUTRIX_META_VERSION}/mautrix-meta_linux_${MM_ARCH}" && \
+    chmod +x /usr/local/bin/mautrix-meta
 
 WORKDIR /build/purple-discord
 RUN make -j"$(nproc)" && make install
@@ -116,6 +124,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       libwebp7 libolm3 libqrencode4 \
       libpng16-16 libgdk-pixbuf-2.0-0 \
       libstdc++6 zlib1g ca-certificates \
+      # supervisor: manages conduwuit, mautrix-meta, and bitlbee as sibling processes
+      supervisor \
       netcat-openbsd tini && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -163,6 +173,52 @@ COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck.sh
 nc -z localhost 6667 || exit 1
 EOF
 
+# supervisord config
+# Processes start in priority order: conduwuit (10) → mautrix-meta (20) → bitlbee (30)
+# All three auto-restart on failure; mautrix-meta retries many times since it waits for conduwuit
+COPY --chmod=644 <<'EOF' /etc/supervisor/conf.d/bitlbee-stack.conf
+[supervisord]
+nodaemon=true
+logfile=/var/lib/bitlbee/supervisord.log
+logfile_maxbytes=5MB
+pidfile=/var/lib/bitlbee/supervisord.pid
+
+[program:conduwuit]
+command=/usr/local/bin/conduwuit --config /var/lib/bitlbee/conduwuit/conduwuit.toml
+priority=10
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
+[program:mautrix-meta]
+command=/usr/local/bin/mautrix-meta --config /var/lib/bitlbee/mautrix-meta/config.yaml
+priority=20
+autostart=true
+autorestart=true
+startsecs=5
+startretries=30
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
+[program:bitlbee]
+command=/usr/local/sbin/bitlbee -F -n -v
+priority=30
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+EOF
+
+# Entrypoint: first-run init then supervisord
+COPY --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
+
 VOLUME ["/var/lib/bitlbee"]
 
 USER bitlbee
@@ -170,8 +226,8 @@ WORKDIR /var/lib/bitlbee
 
 EXPOSE 6667
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
   CMD ["/usr/local/bin/healthcheck.sh"]
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/usr/local/sbin/bitlbee", "-F", "-n", "-v"]
+CMD ["/usr/local/bin/entrypoint.sh"]
