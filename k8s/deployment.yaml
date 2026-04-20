@@ -53,17 +53,19 @@ spec:
 
           resources:
             limits:
-              memory: 512Mi
-              cpu: 1000m
+              # Container now runs 3 processes: conduwuit + mautrix-meta + bitlbee
+              memory: 1Gi
+              cpu: 1500m
             requests:
-              memory: 128Mi
-              cpu: 100m
+              memory: 256Mi
+              cpu: 200m
 
           livenessProbe:
             exec:
               command:
                 - /usr/local/bin/healthcheck.sh
-            initialDelaySeconds: 30
+            # Allow time for conduwuit + mautrix-meta to initialize before BitlBee starts
+            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
@@ -72,7 +74,7 @@ spec:
             exec:
               command:
                 - /usr/local/bin/healthcheck.sh
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

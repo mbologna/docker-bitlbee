@@ -20,13 +20,16 @@ services:
 
     environment:
       - TZ=${TZ:-UTC}
+      # Optional: fix the Matrix registration token (auto-generated if unset)
+      - MATRIX_REGISTRATION_TOKEN=${MATRIX_REGISTRATION_TOKEN:-}
 
     healthcheck:
       test: ["CMD", "/usr/local/bin/healthcheck.sh"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      # Allow extra time for conduwuit + mautrix-meta first-run init
+      start_period: 30s
 
     logging:
       driver: json-file
