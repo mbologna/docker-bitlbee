@@ -39,8 +39,8 @@ spec:
           imagePullPolicy: Always
 
           ports:
-            - name: irc
-              containerPort: 6667
+            - name: ircs
+              containerPort: 6697
               protocol: TCP
 
           envFrom:
@@ -53,7 +53,7 @@ spec:
 
           resources:
             limits:
-              # Container now runs 3 processes: conduwuit + mautrix-meta + bitlbee
+              # Container runs 4 processes: conduwuit + mautrix-meta + bitlbee + stunnel
               memory: 1Gi
               cpu: 1500m
             requests:
@@ -64,7 +64,7 @@ spec:
             exec:
               command:
                 - /usr/local/bin/healthcheck.sh
-            # Allow time for conduwuit + mautrix-meta to initialize before BitlBee starts
+            # Allow time for conduwuit + mautrix-meta + stunnel to initialize before BitlBee starts
             initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 5
@@ -92,98 +92,3 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: bitlbee-data
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: bitlbee-stunnel
-  namespace: bitlbee
-  labels:
-    app.kubernetes.io/name: bitlbee-stunnel
-    app.kubernetes.io/component: tls-proxy
-    app.kubernetes.io/version: "latest"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: bitlbee-stunnel
-      app.kubernetes.io/component: tls-proxy
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: bitlbee-stunnel
-        app.kubernetes.io/component: tls-proxy
-        app.kubernetes.io/version: "latest"
-      annotations:
-        prometheus.io/scrape: "false"
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
-
-      containers:
-        - name: stunnel
-          image: docker.io/mbologna/docker-stunnel:latest
-          imagePullPolicy: Always
-
-          ports:
-            - name: ircs
-              containerPort: 6697
-              protocol: TCP
-
-          envFrom:
-            - configMapRef:
-                name: stunnel-config
-
-          resources:
-            limits:
-              memory: 256Mi
-              cpu: 500m
-            requests:
-              memory: 64Mi
-              cpu: 50m
-
-          livenessProbe:
-            tcpSocket:
-              port: 6697
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-
-          readinessProbe:
-            tcpSocket:
-              port: 6697
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            runAsNonRoot: true
-            runAsUser: 1000
-            capabilities:
-              drop:
-                - ALL
-
-          volumeMounts:
-            - name: run
-              mountPath: /var/run/stunnel
-            - name: log
-              mountPath: /var/log/stunnel
-            - name: tmp
-              mountPath: /tmp
-
-      volumes:
-        - name: run
-          emptyDir: {}
-        - name: log
-          emptyDir: {}
-        - name: tmp
-          emptyDir: {}

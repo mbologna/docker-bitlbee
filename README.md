@@ -5,12 +5,13 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
-A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. Includes optional Stunnel ([docker-stunnel](https://github.com/mbologna/docker-stunnel)) for TLS encryption and Kubernetes deployment manifests.
+A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in — the container only listens on port **6697 (IRC over TLS)**; plaintext is never exposed.
 
 ## Technical Features
 
 - 🏗️ **Multi-architecture support:** `linux/amd64`, `linux/arm64`
 - 🔒 **Security-hardened:** Non-root user, minimal capabilities, security contexts
+- 🔐 **TLS-only:** stunnel terminates TLS inside the container; BitlBee binds loopback-only
 - 📊 **Health checks:** Built-in monitoring with liveness/readiness probes
 - 📦 **SBOM generation:** Software Bill of Materials for supply chain security
 - 🔍 **Automated vulnerability scanning:** Trivy and Grype scans in CI/CD
@@ -39,14 +40,16 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 # Create a volume for persistent data
 docker volume create bitlbee-data
 
-# Run BitlBee
+# Run BitlBee (TLS only — connect your IRC client with SSL/TLS enabled)
 docker run -d \
   --name bitlbee \
   --user $(id -u):$(id -g) \
-  -p 6667:6667 \
+  -p 6697:6697 \
   -v bitlbee-data:/var/lib/bitlbee \
   mbologna/docker-bitlbee:latest
 ```
+
+A self-signed TLS certificate is generated automatically on first run and stored in the persistent volume. Replace `/var/lib/bitlbee/ssl/bitlbee.pem` with your own certificate if needed.
 
 ### Docker Compose
 
@@ -62,9 +65,8 @@ cp .env.example .env
 # Start services
 docker-compose up -d
 
-# Access BitlBee
-# Plain IRC: localhost:6667
-# TLS IRC:   localhost:16697
+# Access BitlBee (TLS)
+# IRC over TLS: localhost:6697
 ```
 
 #### Docker Compose Configuration
@@ -76,8 +78,7 @@ Create a `.env` file:
 ```env
 UID=1000                        # User ID for file permissions
 GID=1000                        # Group ID for file permissions
-BITLBEE_PORT=6667               # BitlBee port (default: 6667)
-STUNNEL_PORT=16697              # Stunnel TLS port (default: 16697)
+BITLBEE_PORT=6697               # BitlBee TLS port (default: 6697)
 TZ=UTC                          # Timezone
 MATRIX_REGISTRATION_TOKEN=      # Optional: set a fixed Matrix registration token
                                  # (auto-generated on first run if left empty)
@@ -97,12 +98,11 @@ kubectl apply -f k8s/
 # Check status
 kubectl get pods -n bitlbee
 
-# Access from within cluster
-# Plain: bitlbee.bitlbee.svc.cluster.local:6667
-# TLS:   bitlbee-stunnel.bitlbee.svc.cluster.local:6697
+# Access from within cluster (TLS only)
+# bitlbee.bitlbee.svc.cluster.local:6697
 
 # Port forward for external access
-kubectl port-forward -n bitlbee svc/bitlbee 6667:6667
+kubectl port-forward -n bitlbee svc/bitlbee 6697:6697
 ```
 
 #### Kubernetes Configuration
@@ -113,15 +113,16 @@ Managed by PersistentVolumeClaim (default: 128Mi, configurable in `k8s/pvc.yaml`
 
 ##### Exposing Services
 
-Edit `k8s/service.yaml` to change service type:
+Edit `k8s/ingress.yaml` (uncomment the relevant block) to choose between NodePort and LoadBalancer. Both examples expose port **6697** only.
 
 **NodePort** (for bare-metal clusters):
 ```yaml
 spec:
   type: NodePort
   ports:
-    - port: 6667
-      nodePort: 30667  # Choose 30000-32767
+    - name: ircs
+      port: 6697
+      nodePort: 30697  # Choose 30000-32767
 ```
 
 **LoadBalancer** (for cloud providers):
@@ -129,7 +130,8 @@ spec:
 spec:
   type: LoadBalancer
   ports:
-    - port: 6667
+    - name: ircs
+      port: 6697
 ```
 
 ##### Resource Limits
@@ -166,10 +168,12 @@ data:
 
 ### First-Time Setup
 
-1. Connect to BitlBee:
+1. Connect to BitlBee with **SSL/TLS enabled** in your IRC client:
    ```
-   /server localhost 6667
+   /server -ssl localhost 6697
    ```
+   Accept the self-signed certificate (or replace it with your own at
+   `/var/lib/bitlbee/ssl/bitlbee.pem`).
 
 2. Register an account:
    ```

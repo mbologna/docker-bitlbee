@@ -12,18 +12,3 @@ data:
   # Optional: set a fixed Matrix registration token used to create accounts on the
   # built-in conduwuit homeserver. Auto-generated on first run if left empty.
   # MATRIX_REGISTRATION_TOKEN: "change-me"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: stunnel-config
-  namespace: bitlbee
-  labels:
-    app.kubernetes.io/name: bitlbee-stunnel
-    app.kubernetes.io/component: configuration
-data:
-  STUNNEL_SERVICE: "bitlbee-stunnel"
-  STUNNEL_ACCEPT: "6697"
-  STUNNEL_CONNECT: "bitlbee:6667"
-  STUNNEL_CLIENT: "no"
-  TZ: "UTC"
