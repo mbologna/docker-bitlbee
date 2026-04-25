@@ -1,6 +1,6 @@
-# Optional: Ingress for exposing BitlBee externally
-# NOTE: IRC over HTTP/HTTPS ingress is non-standard and may not work with all clients
-# Consider using NodePort or LoadBalancer services instead
+# Optional: expose BitlBee externally via NodePort or LoadBalancer.
+# IRC is a raw TCP protocol — standard HTTP/HTTPS Ingress controllers do not
+# support it. Use a NodePort or a cloud LoadBalancer instead.
 
 # ---
 # apiVersion: v1
@@ -14,34 +14,14 @@
 # spec:
 #   type: NodePort
 #   ports:
-#     - name: irc
-#       protocol: TCP
-#       port: 6667
-#       targetPort: irc
-#       nodePort: 30667  # Choose a port in the 30000-32767 range
-#   selector:
-#     app.kubernetes.io/name: bitlbee
-#     app.kubernetes.io/component: gateway
-# ---
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: bitlbee-stunnel-nodeport
-#   namespace: bitlbee
-#   labels:
-#     app.kubernetes.io/name: bitlbee-stunnel
-#     app.kubernetes.io/component: tls-proxy
-# spec:
-#   type: NodePort
-#   ports:
 #     - name: ircs
 #       protocol: TCP
 #       port: 6697
 #       targetPort: ircs
 #       nodePort: 30697  # Choose a port in the 30000-32767 range
 #   selector:
-#     app.kubernetes.io/name: bitlbee-stunnel
-#     app.kubernetes.io/component: tls-proxy
+#     app.kubernetes.io/name: bitlbee
+#     app.kubernetes.io/component: gateway
 #   sessionAffinity: ClientIP
 
 # ---
@@ -61,14 +41,10 @@
 # spec:
 #   type: LoadBalancer
 #   ports:
-#     - name: irc
-#       protocol: TCP
-#       port: 6667
-#       targetPort: irc
 #     - name: ircs
 #       protocol: TCP
 #       port: 6697
-#       targetPort: 6697
+#       targetPort: ircs
 #   selector:
 #     app.kubernetes.io/name: bitlbee
 #   sessionAffinity: ClientIP

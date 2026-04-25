@@ -177,7 +177,39 @@ EOF
     echo ""
 fi
 
-# ── Step 3: hand off to supervisord ──────────────────────────────────────────
-# supervisord starts conduwuit → mautrix-meta → bitlbee in priority order
-# and restarts any process that crashes.
+# ── Step 3: TLS certificate + stunnel config ─────────────────────────────────
+# BitlBee is forced to loopback (127.0.0.1) so it is never reachable on
+# plaintext from outside the container. stunnel terminates TLS on 6697 and
+# forwards to 127.0.0.1:6667. The self-signed cert lives in the persistent
+# volume so it survives container restarts.
+SSL_DIR="${BITLBEE_DATA}/ssl"
+if [ ! -f "${SSL_DIR}/bitlbee.pem" ]; then
+    echo "[init] Generating self-signed TLS certificate..."
+    mkdir -p "${SSL_DIR}"
+    openssl req -x509 -newkey rsa:4096 \
+        -keyout "${SSL_DIR}/key.pem" \
+        -out "${SSL_DIR}/cert.pem" \
+        -days 3650 -nodes \
+        -subj "/CN=bitlbee" 2>/dev/null
+    # stunnel expects cert and key concatenated in a single PEM file
+    cat "${SSL_DIR}/cert.pem" "${SSL_DIR}/key.pem" > "${SSL_DIR}/bitlbee.pem"
+    rm "${SSL_DIR}/cert.pem" "${SSL_DIR}/key.pem"
+    chmod 600 "${SSL_DIR}/bitlbee.pem"
+    echo "[init] TLS certificate written to ${SSL_DIR}/bitlbee.pem"
+fi
+
+# Always (re-)write stunnel.conf so the path is correct even after volume moves.
+cat > "${BITLBEE_DATA}/stunnel.conf" <<EOF
+foreground = yes
+syslog = no
+
+[bitlbee-tls]
+accept = 6697
+connect = 127.0.0.1:6667
+cert = ${SSL_DIR}/bitlbee.pem
+EOF
+
+# ── Step 4: hand off to supervisord ──────────────────────────────────────────
+# supervisord starts conduwuit → mautrix-meta → bitlbee → stunnel in priority
+# order and restarts any process that crashes.
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/bitlbee-stack.conf

@@ -124,8 +124,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       libwebp7 libolm3 libqrencode4 \
       libpng16-16 libgdk-pixbuf-2.0-0 \
       libstdc++6 zlib1g ca-certificates \
-      # supervisor: manages conduwuit, mautrix-meta, and bitlbee as sibling processes
+      # supervisor: manages conduwuit, mautrix-meta, bitlbee, and stunnel as sibling processes
       supervisor \
+      # stunnel4 + openssl: TLS termination in front of BitlBee's loopback-only plaintext socket
+      stunnel4 openssl \
       netcat-openbsd tini && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -167,10 +169,10 @@ RUN groupadd -r -g 1000 bitlbee && \
     chown bitlbee:bitlbee /var/run/bitlbee.pid && \
     chmod 644 /var/run/bitlbee.pid
 
-# Health check script
+# Health check script — checks the TLS port only; plaintext is loopback-internal
 COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck.sh
 #!/bin/sh
-nc -z localhost 6667 || exit 1
+nc -z localhost 6697 || exit 1
 EOF
 
 # supervisord config
@@ -206,8 +208,18 @@ stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 
 [program:bitlbee]
-command=/usr/local/sbin/bitlbee -F -n -v
+command=/usr/local/sbin/bitlbee -F -n -v -i 127.0.0.1
 priority=30
+autostart=true
+autorestart=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+
+[program:stunnel]
+command=/usr/bin/stunnel4 /var/lib/bitlbee/stunnel.conf
+priority=40
 autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
@@ -224,7 +236,7 @@ VOLUME ["/var/lib/bitlbee"]
 USER bitlbee
 WORKDIR /var/lib/bitlbee
 
-EXPOSE 6667
+EXPOSE 6697
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
   CMD ["/usr/local/bin/healthcheck.sh"]
