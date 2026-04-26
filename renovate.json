@@ -11,9 +11,8 @@
   },
   "packageRules": [
     {
-      "description": "Major updates: shown in Dependency Dashboard as a checkbox. Renovate only opens the PR once you tick it, then assigns you for manual review and merge.",
+      "description": "Major updates: open PR immediately, assign for manual review and merge — no auto-merge",
       "matchUpdateTypes": ["major"],
-      "dependencyDashboardApproval": true,
       "automerge": false,
       "reviewers": ["mbologna"]
     },
