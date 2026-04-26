@@ -11,9 +11,11 @@
   },
   "packageRules": [
     {
-      "description": "Disable major version updates — tracked in Dependency Dashboard issue, merge manually when ready",
+      "description": "Major updates: shown in Dependency Dashboard as a checkbox. Renovate only opens the PR once you tick it, then assigns you for manual review and merge.",
       "matchUpdateTypes": ["major"],
-      "enabled": false
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "reviewers": ["mbologna"]
     },
     {
       "description": "Group patch updates per package manager; hold 7 days to let the community catch supply-chain attacks before auto-merging on green CI",
