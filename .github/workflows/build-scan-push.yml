@@ -245,8 +245,8 @@ jobs:
 
       - name: Test IRC connection
         run: |
-          # Simple connection test
-          timeout 10s docker exec bitlbee-test nc -zv localhost 6667 || exit 1
+          # Simple TLS connection test — port 6697 only; 6667 is loopback-internal
+          timeout 10s docker exec bitlbee-test nc -zv localhost 6697 || exit 1
 
       - name: Cleanup
         if: always()
