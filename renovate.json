@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "dependencyDashboard": true,
+  "pinDigests": true,
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Disable major version updates — tracked in Dependency Dashboard issue, merge manually when ready",
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Group patch updates per package manager; hold 7 days so the community can catch supply-chain attacks before auto-merging on green CI",
+      "matchUpdateTypes": ["patch"],
+      "minimumReleaseAge": "7 days",
+      "groupName": "patch updates ({{manager}})",
+      "groupSlug": "patch-{{manager}}",
+      "automerge": true,
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "Group minor updates per package manager; hold 14 days so the community can catch supply-chain attacks before auto-merging on green CI",
+      "matchUpdateTypes": ["minor"],
+      "minimumReleaseAge": "14 days",
+      "groupName": "minor updates ({{manager}})",
+      "groupSlug": "minor-{{manager}}",
+      "automerge": true,
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "CVE / vulnerability alerts (patch or minor): bypass age gate entirely, auto-merge immediately once CI is green",
+      "matchIsVulnerabilityAlert": true,
+      "matchUpdateTypes": ["patch", "minor"],
+      "minimumReleaseAge": null,
+      "automerge": true,
+      "labels": ["dependencies", "security"]
+    },
+    {
+      "description": "CVE / vulnerability alerts requiring a major bump: re-enable (overrides the major-disable rule) and flag for urgent manual review",
+      "matchIsVulnerabilityAlert": true,
+      "matchUpdateTypes": ["major"],
+      "enabled": true,
+      "automerge": false,
+      "labels": ["dependencies", "security"]
+    }
+  ]
+}
