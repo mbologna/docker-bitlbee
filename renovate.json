@@ -1,74 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
-  ],
-  "dependencyDashboard": true,
-  "pinDigests": true,
-  "osvVulnerabilityAlerts": true,
-  "labels": [
-    "dependencies"
-  ],
-  "vulnerabilityAlerts": {
-    "labels": [
-      "dependencies",
-      "security"
-    ],
-    "minimumReleaseAge": "0 days",
-    "automerge": true
-  },
-  "packageRules": [
-    {
-      "description": "Major updates: open PR immediately, assign for manual review and merge — no auto-merge",
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "automerge": false,
-      "reviewers": [
-        "mbologna"
-      ]
-    },
-    {
-      "description": "Group patch updates per package manager; hold 7 days to let the community catch supply-chain attacks before auto-merging on green CI",
-      "matchUpdateTypes": [
-        "patch"
-      ],
-      "minimumReleaseAge": "7 days",
-      "groupName": "patch updates ({{manager}})",
-      "groupSlug": "patch-{{manager}}",
-      "automerge": true,
-      "automergeStrategy": "squash"
-    },
-    {
-      "description": "Group digest updates per package manager; hold 7 days (same as patch) before auto-merging on green CI",
-      "matchUpdateTypes": [
-        "digest"
-      ],
-      "minimumReleaseAge": "7 days",
-      "groupName": "digest updates ({{manager}})",
-      "groupSlug": "digest-{{manager}}",
-      "automerge": true,
-      "automergeStrategy": "squash"
-    },
-    {
-      "description": "Group minor updates per package manager; hold 14 days to let the community catch supply-chain attacks before auto-merging on green CI",
-      "matchUpdateTypes": [
-        "minor"
-      ],
-      "minimumReleaseAge": "14 days",
-      "groupName": "minor updates ({{manager}})",
-      "groupSlug": "minor-{{manager}}",
-      "automerge": true,
-      "automergeStrategy": "squash"
-    },
-    {
-      "description": "Security/CVE updates: bypass age gate, jump the queue with prPriority 10, automerge immediately on green CI",
-      "matchCategories": [
-        "security"
-      ],
-      "minimumReleaseAge": "0 days",
-      "prPriority": 10,
-      "automerge": true
-    }
+    "config:recommended",
+    "github>mbologna/renovate-config"
   ]
 }
