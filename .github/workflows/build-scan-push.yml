@@ -19,7 +19,7 @@ jobs:
     uses: mbologna/.github/.github/workflows/docker-build-scan-push.yml@main
     with:
       image_name: docker-bitlbee
+      yamllint_paths: docker-compose.yml .github/workflows/
       enable_integration_test: true
       enable_release_drafter: true
     secrets: inherit
-
