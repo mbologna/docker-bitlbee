@@ -1,280 +1,32 @@
----
-name: Build, Scan, and Publish Docker Image
+name: Build, Scan and Push
 
-"on":
+on:
   push:
     branches: [main]
-    tags: ['v*.*.*']
+    tags: ["v*.*.*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * 1'  # Weekly security scan on Mondays
+    - cron: "0 6 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  IMAGE_NAME: docker-bitlbee
-  DOCKERHUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
-  GHCR_NAMESPACE: ghcr.io/${{ github.repository_owner }}
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+  security-events: write
 
 jobs:
-  lint:
-    name: Lint & Static Analysis
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Hadolint (Dockerfile)
-        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
-        with:
-          dockerfile: Dockerfile
-          failure-threshold: error
-
-      - name: yamllint
-        uses: ibiqlik/action-yamllint@2576378a8e339169678f9939646ee3ee325e845c # v3
-        with:
-          file_or_dir: docker-compose.yml .github/workflows/
-          config_data: |
-            extends: default
-            rules:
-              line-length:
-                max: 120
-                level: warning
-
-      - name: KubeLinter
-        if: hashFiles('k8s/**') != ''
-        uses: stackrox/kube-linter-action@87802a2f4e01abebb3ee3c67a3002fea71f6eae5 # v1
-        with:
-          directory: k8s
-          config: .kube-linter/config.yaml
-
-  build:
-    name: Build & Push Multi-Arch Image
-    runs-on: ubuntu-latest
-    needs: lint
-
-    permissions:
-      contents: read
-      packages: write
-      security-events: write
-      id-token: write
-      attestations: write
-
-    outputs:
-      image-digest: ${{ steps.build.outputs.digest }}
-      image-tags: ${{ steps.meta.outputs.tags }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
-        with:
-          driver-opts: network=host
-
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Login to GHCR
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6
-        with:
-          images: |
-            ${{ env.GHCR_NAMESPACE }}/${{ env.IMAGE_NAME }}
-            ${{ env.DOCKERHUB_NAMESPACE != '' && format('{0}/{1}', env.DOCKERHUB_NAMESPACE, env.IMAGE_NAME) || '' }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix=sha-
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-          labels: |
-            org.opencontainers.image.title=BitlBee
-            org.opencontainers.image.description=BitlBee IRC gateway with plugins
-            org.opencontainers.image.vendor=${{ github.repository_owner }}
-
-      - name: Build & Push
-        id: build
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
-        with:
-          context: .
-          file: Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=buildx-${{ github.job }}
-          cache-to: type=gha,mode=max,scope=buildx-${{ github.job }}
-          provenance: true
-          sbom: true
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-
-      - name: Generate SBOM
-        if: github.event_name != 'pull_request'
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
-        with:
-          image: ${{ env.DOCKERHUB_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
-          format: cyclonedx-json
-          output-file: sbom.cyclonedx.json
-
-      - name: Upload SBOM artifact
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: sbom
-          path: sbom.cyclonedx.json
-          retention-days: 30
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name != 'pull_request'
-
-    permissions:
-      security-events: write
-      contents: read
-
-    strategy:
-      matrix:
-        scanner: [trivy, grype]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Run Trivy vulnerability scanner
-        if: matrix.scanner == 'trivy'
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-          format: sarif
-          output: trivy-results.sarif
-          ignore-unfixed: true
-          vuln-type: os,library
-          severity: CRITICAL,HIGH,MEDIUM
-          timeout: 10m
-
-      - name: Install Grype
-        if: matrix.scanner == 'grype'
-        run: curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-
-      - name: Update Grype DB
-        if: matrix.scanner == 'grype'
-        run: grype db update
-
-      - name: Run Grype vulnerability scanner
-        if: matrix.scanner == 'grype'
-        continue-on-error: true
-        run: |
-          grype "${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest" \
-            -o sarif > grype-results.sarif
-
-      - name: Upload SARIF to GitHub Security
-        if: always() && hashFiles(format('{0}-results.sarif', matrix.scanner)) != ''
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4
-        with:
-          sarif_file: ${{ matrix.scanner }}-results.sarif
-          category: ${{ matrix.scanner }}
-
-  test:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name != 'pull_request'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Pull image
-        run: |
-          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Test container startup
-        run: |
-          docker run -d --name bitlbee-test \
-            -e UID=1000 -e GID=1000 \
-            -e MATRIX_REGISTRATION_TOKEN=ci-test-token \
-            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-
-          # Allow up to 90s: first-run generates conduwuit + mautrix-meta configs
-          # before supervisord starts all three processes
-          for i in {1..45}; do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' bitlbee-test 2>/dev/null)
-            RUNNING=$(docker inspect --format='{{.State.Running}}' bitlbee-test 2>/dev/null)
-            if [ "$RUNNING" != "true" ]; then
-              echo "Container stopped unexpectedly"
-              docker logs bitlbee-test
-              exit 1
-            fi
-            if [ "$STATUS" = "healthy" ]; then
-              echo "Container is healthy"
-              exit 0
-            fi
-            echo "Waiting for container to be healthy... ($i/45) [status=$STATUS]"
-            sleep 2
-          done
-
-          echo "Container failed to become healthy"
-          docker logs bitlbee-test
-          exit 1
-
-      - name: Test IRC connection
-        run: |
-          # Simple TLS connection test — port 6697 only; 6667 is loopback-internal
-          timeout 10s docker exec bitlbee-test nc -zv localhost 6697 || exit 1
-
-      - name: Cleanup
-        if: always()
-        run: |
-          docker stop bitlbee-test || true
-          docker rm bitlbee-test || true
-
-  release-notes:
-    name: Generate Release Notes
-    runs-on: ubuntu-latest
-    needs: [build, security, test]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          fetch-depth: 0
-
-      - name: Generate Release Notes
-        id: notes
-        uses: release-drafter/release-drafter@5de93583980a40bd78603b6dfdcda5b4df377b32 # v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create Release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
-        with:
-          body: ${{ steps.notes.outputs.body }}
-          draft: false
-          prerelease: false
+  docker:
+    uses: mbologna/.github/.github/workflows/docker-build-scan-push.yml@main
+    with:
+      image_name: docker-bitlbee
+      yamllint_paths: docker-compose.yml .github/workflows/
+      enable_integration_test: true
+      enable_release_drafter: true
+    secrets: inherit
