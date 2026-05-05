@@ -11,8 +11,10 @@ LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.licenses="MIT"
 
 ARG BITLBEE_VERSION=3.6
+# renovate: datasource=github-releases depName=girlbossceo/conduwuit
 # Check https://github.com/girlbossceo/conduwuit/releases for the latest version
 ARG CONDUWUIT_VERSION=0.4.6
+# renovate: datasource=github-releases depName=mautrix/meta
 # Check https://github.com/mautrix/meta/releases for the latest version
 ARG MAUTRIX_META_VERSION=0.2604.0
 ARG TARGETARCH
