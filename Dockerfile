@@ -3,7 +3,7 @@
 ############################
 # Builder stage
 ############################
-FROM buildpack-deps:stable-scm@sha256:612e3037dbceeb0ac914af248452bc94f0adf825fe90ae0f18f9a30cbf425f2d AS builder
+FROM buildpack-deps:stable-scm@sha256:b99520dac89ed2d7ece02dc1daa325e818bef4bd92f0a26a580798f0de9c001b AS builder
 
 LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
