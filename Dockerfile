@@ -3,7 +3,7 @@
 ############################
 # Builder stage
 ############################
-FROM buildpack-deps:stable-scm@sha256:612e3037dbceeb0ac914af248452bc94f0adf825fe90ae0f18f9a30cbf425f2d AS builder
+FROM buildpack-deps:stable-scm@sha256:b99520dac89ed2d7ece02dc1daa325e818bef4bd92f0a26a580798f0de9c001b AS builder
 
 LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
@@ -110,7 +110,7 @@ RUN ldconfig && libtool --finish /usr/local/lib/bitlbee
 ############################
 # Runtime stage
 ############################
-FROM debian:stable-slim@sha256:8f0c555de6a2f9c2bda1b170b67479d11f7f5e3b66bb4a7a1d8843361c9dd3ff
+FROM debian:stable-slim@sha256:5012d0517aa0075a7150a45aae67586641e898913b7af3b08228108565b5f90c
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
