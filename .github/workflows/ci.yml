@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   docker:
-    uses: mbologna/.github/.github/workflows/docker-build-scan-push.yml@79e90cadfb3336caf16e4f749548dbea92d8d3bc # main
+    uses: mbologna/.github/.github/workflows/docker-build-scan-push.yml@829a974d8aa0bc51c93c7433d8b5d9483466ae0e # main
     with:
       image_name: docker-bitlbee
       yamllint_paths: docker-compose.yml .github/workflows/
