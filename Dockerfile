@@ -27,8 +27,8 @@ ARG PURPLE_DISCORD_VERSION=master
 ARG PURPLE_TEAMS_VERSION=master
 # renovate: datasource=github-tags depName=EionRobb/purple-googlechat
 ARG PURPLE_GOOGLECHAT_VERSION=master
-# renovate: datasource=github-tags depName=BenWiederhake/tdlib-purple
-ARG TDLIB_PURPLE_VERSION=v0.4
+# tdlib-purple has no recent release tags; always build from master
+ARG TDLIB_PURPLE_VERSION=master
 # renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
