@@ -1,7 +1,7 @@
 # BitlBee Docker Container
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/mbologna/docker-bitlbee)](https://hub.docker.com/r/mbologna/docker-bitlbee)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/mbologna/docker-bitlbee/build-scan-push.yml?branch=main)](https://github.com/mbologna/docker-bitlbee/actions)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/mbologna/docker-bitlbee/ci.yml?branch=main)](https://github.com/mbologna/docker-bitlbee/actions)
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
