@@ -17,6 +17,23 @@ ARG CONDUWUIT_VERSION=0.4.6
 # renovate: datasource=github-releases depName=mautrix/meta
 # Check https://github.com/mautrix/meta/releases for the latest version
 ARG MAUTRIX_META_VERSION=0.2604.0
+
+# Plugin versions — tracked by Renovate where release tags are available.
+# EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
+# so they stay on "master" (always latest) and Renovate does not track them.
+# renovate: datasource=github-tags depName=EionRobb/purple-discord
+ARG PURPLE_DISCORD_VERSION=master
+# renovate: datasource=github-tags depName=EionRobb/purple-teams
+ARG PURPLE_TEAMS_VERSION=master
+# renovate: datasource=github-tags depName=EionRobb/purple-googlechat
+ARG PURPLE_GOOGLECHAT_VERSION=master
+# renovate: datasource=github-tags depName=BenWiederhake/tdlib-purple
+ARG TDLIB_PURPLE_VERSION=v0.4
+# renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
+ARG BITLBEE_MASTODON_VERSION=v1.4.5
+# renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
+ARG PURPLE_WHATSMEOW_VERSION=v1.22.0
+
 ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -31,7 +48,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # Build tools
     autoconf automake build-essential cmake gcc git gperf libtool libtool-bin make pkg-config \
     # Protocol libraries
-    libglib2.0-dev libhttp-parser-dev libotr5-dev libpurple-dev \
+    libglib2.0-dev libotr5-dev libpurple-dev \
     libgnutls28-dev libjson-glib-dev libnss3-dev libssl-dev libgcrypt20-dev libgcrypt-dev \
     # Media libraries
     libpng-dev libwebp-dev libgdk-pixbuf-xlib-2.0-dev libopusfile-dev \
@@ -45,14 +62,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Fetch all sources in parallel where possible
 RUN --mount=type=cache,target=/root/.cache/go-build \
     curl -fsSL -o bitlbee.tar.gz https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz & \
-    git clone --depth=1 --single-branch https://github.com/EionRobb/purple-discord.git & \
-    git clone --depth=1 --single-branch https://github.com/matrix-org/purple-matrix.git & \
-    git clone --depth=1 --single-branch https://github.com/EionRobb/purple-teams.git & \
-    git clone --depth=1 --single-branch https://github.com/dylex/slack-libpurple.git & \
-    git clone --depth=1 --single-branch https://github.com/BenWiederhake/tdlib-purple.git & \
-    git clone --depth=1 --single-branch https://github.com/kensanata/bitlbee-mastodon.git & \
+    git clone --depth=1 --single-branch --branch ${PURPLE_DISCORD_VERSION} https://github.com/EionRobb/purple-discord.git & \
+    git clone --depth=1 --single-branch --branch ${PURPLE_TEAMS_VERSION} https://github.com/EionRobb/purple-teams.git & \
+    git clone --depth=1 --single-branch --branch ${PURPLE_GOOGLECHAT_VERSION} https://github.com/EionRobb/purple-googlechat.git & \
+    git clone --depth=1 --single-branch --branch ${TDLIB_PURPLE_VERSION} https://github.com/BenWiederhake/tdlib-purple.git & \
+    git clone --depth=1 --single-branch --branch ${BITLBEE_MASTODON_VERSION} https://github.com/kensanata/bitlbee-mastodon.git & \
     git clone --depth=1 --single-branch --recurse-submodules --shallow-submodules \
-      https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow & \
+      --branch ${PURPLE_WHATSMEOW_VERSION} https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow & \
     wait
 
 # Build BitlBee
@@ -83,13 +99,10 @@ RUN case "${TARGETARCH}" in \
 
 WORKDIR /build/purple-discord
 RUN make -j"$(nproc)" && make install
-WORKDIR /build/purple-matrix
-RUN make -j"$(nproc)" && make install
 WORKDIR /build/purple-teams
 RUN make -j"$(nproc)" && make install
-
-WORKDIR /build/slack-libpurple
-RUN make install
+WORKDIR /build/purple-googlechat
+RUN make -j"$(nproc)" && make install
 
 WORKDIR /build/tdlib-purple
 RUN ./build_and_install.sh
@@ -122,7 +135,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get install -y --no-install-recommends \
       libpurple0 libotr5 libssl3 libgnutls30 libgcrypt20 \
       libglib2.0-0 libjson-glib-1.0-0 libprotobuf-c1 \
-      libhttp-parser2.9 libsqlite3-0 libopusfile0 \
+      libsqlite3-0 libopusfile0 \
       libwebp7 libolm3 libqrencode4 \
       libpng16-16 libgdk-pixbuf-2.0-0 \
       libstdc++6 zlib1g ca-certificates \
