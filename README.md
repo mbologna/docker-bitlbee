@@ -24,13 +24,14 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 
 **Via Plugins:**
 - Discord ([purple-discord](https://github.com/EionRobb/purple-discord))
-- Matrix ([purple-matrix](https://github.com/matrix-org/purple-matrix))
-- Microsoft Teams ([purple-teams](https://github.com/EionRobb/purple-teams))
-- Slack ([slack-libpurple](https://github.com/dylex/slack-libpurple))
-- Facebook Messenger ([mautrix-meta](https://github.com/mautrix/meta) via built-in Matrix homeserver)
+- Facebook Messenger & Instagram DMs ([mautrix-meta](https://github.com/mautrix/meta) via built-in Matrix homeserver)
+- Google Chat ([purple-googlechat](https://github.com/EionRobb/purple-googlechat))
 - Mastodon ([bitlbee-mastodon](https://github.com/kensanata/bitlbee-mastodon))
+- Microsoft Teams ([purple-teams](https://github.com/EionRobb/purple-teams))
 - Telegram ([tdlib-purple](https://github.com/BenWiederhake/tdlib-purple))
 - WhatsApp ([purple-whatsmeow](https://github.com/hoehermann/purple-gowhatsapp))
+
+> **Note:** Twitter/X's built-in BitlBee support requires a paid API key since free-tier access was removed in 2023.
 
 ## Quick Start
 
