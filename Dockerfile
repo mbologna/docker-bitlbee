@@ -16,7 +16,7 @@ ARG BITLBEE_VERSION=3.6
 ARG CONDUWUIT_VERSION=0.4.6
 # renovate: datasource=github-releases depName=mautrix/meta
 # Check https://github.com/mautrix/meta/releases for the latest version
-ARG MAUTRIX_META_VERSION=0.2604.0
+ARG MAUTRIX_META_VERSION=0.2605.0
 
 # Plugin versions — tracked by Renovate where release tags are available.
 # EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
@@ -42,6 +42,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 WORKDIR /build
 
 # Build dependencies - grouped by functionality for better caching
+# hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -129,6 +130,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install runtime dependencies with cache mount
+# hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
@@ -159,7 +161,7 @@ COPY --from=builder /usr/lib/*-linux-gnu/purple-2 /tmp/purple-2/
 COPY --from=builder /usr/share/pixmaps/pidgin /usr/share/pixmaps/pidgin/
 
 # Install purple plugins to correct architecture directory
-RUN ARCH_DIR=$(ls -d /usr/lib/*-linux-gnu 2>/dev/null | head -n1) && \
+RUN ARCH_DIR=$(find /usr/lib -maxdepth 1 -type d -name '*-linux-gnu' | head -n1) && \
     mkdir -p "${ARCH_DIR}/purple-2" && \
     if [ -d /tmp/purple-2 ]; then \
       cp -a /tmp/purple-2/* "${ARCH_DIR}/purple-2/" && \

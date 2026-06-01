@@ -5,7 +5,7 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
-A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in — the container only listens on port **6697 (IRC over TLS)**; plaintext is never exposed.
+A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in: the container only listens on port **6697 (IRC over TLS)**; plaintext is never exposed.
 
 ## Technical Features
 
@@ -41,7 +41,7 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 # Create a volume for persistent data
 docker volume create bitlbee-data
 
-# Run BitlBee (TLS only — connect your IRC client with SSL/TLS enabled)
+# Run BitlBee (TLS only; connect your IRC client with SSL/TLS enabled)
 docker run -d \
   --name bitlbee \
   --user $(id -u):$(id -g) \
@@ -202,7 +202,7 @@ save
 
 ### Example: Facebook Messenger (with 2FA)
 
-Facebook Messenger is bridged via an embedded [Matrix](https://matrix.org/) homeserver ([conduwuit](https://github.com/girlbossceo/conduwuit)) and a [mautrix-meta](https://github.com/mautrix/meta) bridge. Both run inside the same container — no extra services needed.
+Facebook Messenger is bridged via an embedded [Matrix](https://matrix.org/) homeserver ([conduwuit](https://github.com/girlbossceo/conduwuit)) and a [mautrix-meta](https://github.com/mautrix/meta) bridge. Both run inside the same container; no extra services needed.
 
 **On first container start**, look for the Matrix registration token in the logs:
 
@@ -232,7 +232,7 @@ docker logs bitlbee | grep "registration token"
    ```
    /msg @facebookbot:localhost login
    ```
-   The bot will guide you through a QR code or link-based login — this works with 2FA and does not use the old (broken) mobile API.
+   The bot will guide you through a QR code or link-based login. This works with 2FA and does not use the old (broken) mobile API.
 
 4. Once linked, your Facebook contacts appear as channels/users in BitlBee. Save:
    ```
