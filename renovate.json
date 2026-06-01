@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>mbologna/renovate-config"],
+  "extends": ["github>mbologna/.github//renovate-config.json"],
   "customManagers": [
     {
       "description": "Track ARG versions in Dockerfile annotated with inline renovate comments",
