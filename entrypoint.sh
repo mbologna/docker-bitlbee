@@ -160,6 +160,9 @@ allow_federation = false
 allow_registration = true
 registration_token = "${REG_TOKEN}"
 
+# mautrix-meta appservice registration — lets the bridge authenticate with this homeserver
+app_service_files = ["${MAUTRIX_DIR}/registration.yaml"]
+
 log = "warn,conduwuit=info"
 EOF
 
@@ -175,6 +178,14 @@ EOF
     echo "║  (see README for full setup steps)                          ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo ""
+fi
+
+# ── Step 2b: migrate existing conduwuit.toml (add app_service_files if missing) ──
+# Existing volumes written before this fix lack the app_service_files key, causing
+# mautrix-meta to crash-loop with "as_token was not accepted". Patch it idempotently.
+if [ -f "${CONDUWUIT_DIR}/conduwuit.toml" ] && ! grep -q 'app_service_files' "${CONDUWUIT_DIR}/conduwuit.toml"; then
+    echo "[migrate] Adding missing app_service_files to conduwuit.toml..."
+    printf '\n# mautrix-meta appservice registration — lets the bridge authenticate with this homeserver\napp_service_files = ["%s/registration.yaml"]\n' "${MAUTRIX_DIR}" >> "${CONDUWUIT_DIR}/conduwuit.toml"
 fi
 
 # ── Step 3: TLS certificate + stunnel config ─────────────────────────────────
