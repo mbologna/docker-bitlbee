@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   docker:
-    uses: mbologna/.github/.github/workflows/docker-ci.yml@60c0ffe12ebfe88e773c2780a7f71d80829ddfb4 # main
+    uses: mbologna/.github/.github/workflows/docker-ci.yml@6c12a94fd79c0e0b037fd126e568aa4f1f8e39f3 # main
     with:
       image_name: docker-bitlbee
       yamllint_paths: docker-compose.yml .github/workflows/
