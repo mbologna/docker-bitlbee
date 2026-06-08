@@ -336,6 +336,16 @@ PYEOF
     local py_exit=$?
 
     kill $conduwuit_pid 2>/dev/null || true
+    # Give conduwuit a short grace period for WAL flush, then SIGKILL.
+    # Graceful RocksDB shutdown can take 10+ minutes on constrained hardware
+    # (full memtable flush + compaction). SIGKILL is safe here: the appservice
+    # registration was already confirmed above, and RocksDB's WAL guarantees
+    # data integrity on the next start.
+    local deadline=$((SECONDS + 30))
+    while kill -0 "$conduwuit_pid" 2>/dev/null && [ $SECONDS -lt $deadline ]; do
+        sleep 1
+    done
+    kill -KILL "$conduwuit_pid" 2>/dev/null || true
     wait $conduwuit_pid 2>/dev/null || true
     return $py_exit
 }
