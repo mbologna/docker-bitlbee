@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   docker:
-    uses: mbologna/.github/.github/workflows/docker-ci.yml@34ce8b02522b62bb27e3d27ea66b46f6174be561 # main
+    uses: mbologna/.github/.github/workflows/docker-ci.yml@eeab720b08ce458869bd18ad8a33cd50e9fb82bf # main
     with:
       image_name: docker-bitlbee
       yamllint_paths: docker-compose.yml .github/workflows/
@@ -34,7 +34,7 @@ jobs:
   auto-release:
     if: github.event_name == 'schedule'
     needs: [docker]
-    uses: mbologna/.github/.github/workflows/auto-release.yml@34ce8b02522b62bb27e3d27ea66b46f6174be561 # main
+    uses: mbologna/.github/.github/workflows/auto-release.yml@eeab720b08ce458869bd18ad8a33cd50e9fb82bf # main
     with:
       strategy: docker
       image: docker.io/mbologna/docker-bitlbee
