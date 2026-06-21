@@ -47,7 +47,7 @@ jobs:
     needs: dismiss-stale-alerts
     # dismiss-stale-alerts is skipped on PRs; make docker not depend on it for PRs
     if: always()
-    uses: mbologna/.github/.github/workflows/docker-ci.yml@0d6f5e237902bde6f73c9a9ab229713648144e84 # main
+    uses: mbologna/.github/.github/workflows/docker-ci.yml@58f69f2a4d1f9ec27f9f40ba45c3666028dbb4e1 # main
     with:
       image_name: docker-bitlbee
       yamllint_paths: docker-compose.yml .github/workflows/
@@ -59,7 +59,7 @@ jobs:
   auto-release:
     if: github.event_name == 'schedule'
     needs: [docker]
-    uses: mbologna/.github/.github/workflows/auto-release.yml@0d6f5e237902bde6f73c9a9ab229713648144e84 # main
+    uses: mbologna/.github/.github/workflows/auto-release.yml@58f69f2a4d1f9ec27f9f40ba45c3666028dbb4e1 # main
     with:
       strategy: docker
       image: docker.io/mbologna/docker-bitlbee
