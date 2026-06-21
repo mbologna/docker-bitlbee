@@ -1,9 +1,71 @@
 # syntax=docker/dockerfile:1.24@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 
 ############################
+# tdlib-builder stage (isolated so TDLib cache is not busted by unrelated version bumps)
+############################
+FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:e853ed03fc42f5051aaf4e7deb60e72605f38ccde0568e1f1e8b5153da1ea30e AS tdlib-builder
+
+# tdlib-purple has no recent release tags; always build from master
+ARG TDLIB_PURPLE_VERSION=master
+ARG TARGETARCH
+ARG BUILDPLATFORM
+
+ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+WORKDIR /build
+
+# hadolint ignore=DL3008
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+      build-essential cmake git make pkg-config \
+      libglib2.0-dev libpurple-dev libssl-dev ca-certificates \
+      gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+RUN git clone --depth=1 --single-branch --branch "${TDLIB_PURPLE_VERSION}" \
+      --recurse-submodules --shallow-submodules \
+      https://github.com/BenWiederhake/tdlib-purple.git
+
+# Phase 1 — build TDLib code generators on the HOST arch (required for cross-compile).
+# These generators produce source files that are then compiled for the TARGET arch.
+WORKDIR /build/tdlib-purple/td
+RUN mkdir build-host && \
+    cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Release && \
+    make -C build-host prepare_cross_compiling -j"$(nproc)"
+
+# Phase 2 — build TDLib for TARGET arch (native or cross)
+COPY cmake/arm64.toolchain.cmake /arm64.toolchain.cmake
+RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; then \
+      cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CROSSCOMPILING=True \
+        -DCMAKE_TOOLCHAIN_FILE=/arm64.toolchain.cmake \
+        -DTdNativeGeneratorsDir="$(pwd)/build-host"; \
+    else \
+      cmake -S . -B build -DCMAKE_BUILD_TYPE=Release; \
+    fi && \
+    make -C build -j"$(nproc)" && \
+    make -C build install DESTDIR="$(pwd)/build/destdir"
+
+# Phase 3 — build telegram-purple plugin against the TDLib we just built
+WORKDIR /build/tdlib-purple
+RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; then \
+      cmake -S . -B plugin-build \
+        -DTd_DIR="$(pwd)/td/build/destdir/usr/local/lib/cmake/Td/" \
+        -DNoVoip=True \
+        -DCMAKE_CROSSCOMPILING=True \
+        -DCMAKE_TOOLCHAIN_FILE=/arm64.toolchain.cmake; \
+    else \
+      cmake -S . -B plugin-build \
+        -DTd_DIR="$(pwd)/td/build/destdir/usr/local/lib/cmake/Td/" \
+        -DNoVoip=True; \
+    fi && \
+    make -C plugin-build -j"$(nproc)" && \
+    make -C plugin-build install
+
+############################
 # Builder stage
 ############################
-FROM buildpack-deps:stable-scm@sha256:e853ed03fc42f5051aaf4e7deb60e72605f38ccde0568e1f1e8b5153da1ea30e AS builder
+FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:e853ed03fc42f5051aaf4e7deb60e72605f38ccde0568e1f1e8b5153da1ea30e AS builder
 
 LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
@@ -29,14 +91,13 @@ ARG PURPLE_DISCORD_VERSION=master
 ARG PURPLE_TEAMS_VERSION=master
 # renovate: datasource=github-tags depName=EionRobb/purple-googlechat
 ARG PURPLE_GOOGLECHAT_VERSION=master
-# tdlib-purple has no recent release tags; always build from master
-ARG TDLIB_PURPLE_VERSION=master
 # renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
 ARG PURPLE_WHATSMEOW_VERSION=v1.22.0
 
 ARG TARGETARCH
+ARG BUILDPLATFORM
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -59,6 +120,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # Additional dependencies
     libolm-dev libprotobuf-c-dev protobuf-c-compiler libqrencode-dev \
     libmarkdown2-dev libsqlite3-dev \
+    # Cross-compilation toolchain (used when building for arm64 on amd64 runners)
+    gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
     # Utilities
     netcat-traditional curl ca-certificates golang gettext sudo
 
@@ -68,7 +131,6 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     git clone --depth=1 --single-branch --branch ${PURPLE_DISCORD_VERSION} https://github.com/EionRobb/purple-discord.git & \
     git clone --depth=1 --single-branch --branch ${PURPLE_TEAMS_VERSION} https://github.com/EionRobb/purple-teams.git & \
     git clone --depth=1 --single-branch --branch ${PURPLE_GOOGLECHAT_VERSION} https://github.com/EionRobb/purple-googlechat.git & \
-    git clone --depth=1 --single-branch --branch ${TDLIB_PURPLE_VERSION} https://github.com/BenWiederhake/tdlib-purple.git & \
     git clone --depth=1 --single-branch --branch ${BITLBEE_MASTODON_VERSION} https://github.com/kensanata/bitlbee-mastodon.git & \
     git clone --depth=1 --single-branch --recurse-submodules --shallow-submodules \
       --branch ${PURPLE_WHATSMEOW_VERSION} https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow & \
@@ -107,8 +169,13 @@ RUN make -j"$(nproc)" && make install
 WORKDIR /build/purple-googlechat
 RUN make -j"$(nproc)" && make install
 
-WORKDIR /build/tdlib-purple
-RUN ./build_and_install.sh
+# Copy TDLib libraries and telegram-purple plugin from the isolated builder stage
+COPY --from=tdlib-builder /usr/local/lib/libTd* /usr/local/lib/
+COPY --from=tdlib-builder /usr/lib/*-linux-gnu/purple-2 /tmp/tdlib-purple-2/
+RUN ARCH_DIR=$(find /usr/lib -maxdepth 1 -type d -name '*-linux-gnu' | head -n1) && \
+    mkdir -p "${ARCH_DIR}/purple-2" && \
+    cp -a /tmp/tdlib-purple-2/. "${ARCH_DIR}/purple-2/" && \
+    rm -rf /tmp/tdlib-purple-2
 
 WORKDIR /build/bitlbee-mastodon
 RUN ./autogen.sh && \
