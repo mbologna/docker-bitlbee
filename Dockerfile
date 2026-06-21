@@ -26,15 +26,18 @@ RUN git clone --depth=1 --single-branch --branch "${TDLIB_PURPLE_VERSION}" \
       --recurse-submodules --shallow-submodules \
       https://github.com/BenWiederhake/tdlib-purple.git
 
-# Phase 1 — build TDLib code generators on the HOST arch (required for cross-compile).
-# These generators produce source files that are then compiled for the TARGET arch.
+# Phase 1 — build TDLib code generators on the HOST arch (only needed for cross-compilation).
+# prepare_cross_compiling requires DCMAKE_CROSSCOMPILING=True so cmake generates the target;
+# without a toolchain file cmake still uses the host compiler, which is what we want here.
 WORKDIR /build/tdlib-purple/td
-RUN mkdir build-host && \
-    cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Release && \
-    make -C build-host prepare_cross_compiling -j"$(nproc)"
+COPY cmake/arm64.toolchain.cmake /arm64.toolchain.cmake
+RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; then \
+      mkdir build-host && \
+      cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Release -DCMAKE_CROSSCOMPILING=True && \
+      make -C build-host prepare_cross_compiling -j"$(nproc)"; \
+    fi
 
 # Phase 2 — build TDLib for TARGET arch (native or cross)
-COPY cmake/arm64.toolchain.cmake /arm64.toolchain.cmake
 RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; then \
       cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CROSSCOMPILING=True \
