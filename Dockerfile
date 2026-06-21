@@ -18,7 +18,7 @@ WORKDIR /build
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
-      build-essential cmake git gperf make pkg-config \
+      build-essential cmake git gperf gettext make pkg-config \
       libglib2.0-dev libpurple-dev libssl-dev zlib1g-dev ca-certificates \
       gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
