@@ -54,13 +54,13 @@ WORKDIR /build/tdlib-purple
 RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; then \
       cmake -S . -B plugin-build \
         -DTd_DIR="$(pwd)/td/build/destdir/usr/local/lib/cmake/Td/" \
-        -DNoVoip=True \
+        -DNoVoip=True -DNoWebp=True \
         -DCMAKE_CROSSCOMPILING=True \
         -DCMAKE_TOOLCHAIN_FILE=/arm64.toolchain.cmake; \
     else \
       cmake -S . -B plugin-build \
         -DTd_DIR="$(pwd)/td/build/destdir/usr/local/lib/cmake/Td/" \
-        -DNoVoip=True; \
+        -DNoVoip=True -DNoWebp=True; \
     fi && \
     make -C plugin-build -j"$(nproc)" && \
     make -C plugin-build install
