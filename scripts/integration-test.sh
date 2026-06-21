@@ -41,7 +41,7 @@ echo "=== Verifying plugin files ==="
 PURPLE_DIR=$(docker exec bitlbee-test find /usr/lib -maxdepth 3 -name "purple-2" -type d | head -1)
 BITLBEE_PLUGIN_DIR="/usr/local/lib/bitlbee"
 
-PURPLE_PLUGINS="discordprpl.so teamsprpl.so googlechatprpl.so whatsmeow.so telegram-purple.so"
+PURPLE_PLUGINS="libdiscord.so libteams.so libgooglechat.so libwhatsmeow.so libtelegram-tdlib.so"
 BITLBEE_PLUGINS="mastodon.so"
 
 for plugin in $PURPLE_PLUGINS; do
