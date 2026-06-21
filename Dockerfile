@@ -18,8 +18,8 @@ WORKDIR /build
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
-      build-essential cmake git make pkg-config \
-      libglib2.0-dev libpurple-dev libssl-dev ca-certificates \
+      build-essential cmake git gperf make pkg-config \
+      libglib2.0-dev libpurple-dev libssl-dev zlib1g-dev ca-certificates \
       gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
 RUN git clone --depth=1 --single-branch --branch "${TDLIB_PURPLE_VERSION}" \
