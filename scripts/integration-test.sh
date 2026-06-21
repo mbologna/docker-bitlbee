@@ -6,6 +6,7 @@ IMAGE="${IMAGE_REF:-${DOCKER_USERNAME}/docker-bitlbee:latest}"
 docker pull "$IMAGE"
 
 docker run -d --name bitlbee-test \
+  -p 6697:6697 \
   -e UID=1000 -e GID=1000 \
   -e MATRIX_REGISTRATION_TOKEN=ci-test-token \
   "$IMAGE"
