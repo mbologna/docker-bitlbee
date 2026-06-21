@@ -1,17 +1,21 @@
 #!/bin/bash
 # entrypoint.sh — first-run initialization for conduwuit + mautrix-meta + bitlbee
 #
-# On first run this script generates:
+# Installed as /etc/cont-init.d/10-init.sh; s6-overlay runs it before starting
+# any services.  On first run this script generates:
 #   1. A mautrix-meta appservice registration file (registration.yaml) with random tokens
 #   2. A mautrix-meta config.yaml pointing to the local conduwuit homeserver
 #   3. A conduwuit.toml for the local Matrix homeserver
 #   4. Bootstraps conduwuit to register the mautrix-meta appservice in its database
 #
-# On subsequent runs it skips straight to supervisord.
+# On subsequent runs it skips straight to exit 0 (s6 then starts the services).
 #
 # State lives in the persistent volume at /var/lib/bitlbee:
 #   /var/lib/bitlbee/conduwuit/   — conduwuit database + config
 #   /var/lib/bitlbee/mautrix-meta/ — bridge database + config + registration
+
+# s6-overlay runs cont-init scripts as root; drop to bitlbee for all file writes.
+[ "$(id -u)" = "0" ] && exec s6-setuidgid bitlbee "$0" "$@"
 
 set -euo pipefail
 
@@ -222,6 +226,73 @@ EOF
 ADMIN_USER="conduwuit-init"
 ADMIN_PASS="$(cat "${CONDUWUIT_DIR}/init_admin_pass" 2>/dev/null || true)"
 
+_do_matrix_bootstrap() {
+    local base="$1"
+    local reg_token="$2"
+
+    # Register admin account (idempotent — ok if already exists)
+    local session
+    session=$(curl -sf -X POST "${base}/_matrix/client/v3/register" \
+        -H "Content-Type: application/json" -d '{}' | jq -r '.session // empty') || true
+    curl -sf -X POST "${base}/_matrix/client/v3/register" \
+        -H "Content-Type: application/json" \
+        -d "{\"username\":\"${ADMIN_USER}\",\"password\":\"${ADMIN_PASS}\",\"auth\":{\"type\":\"m.login.registration_token\",\"token\":\"${reg_token}\",\"session\":\"${session}\"}}" \
+        > /dev/null 2>&1 || true
+
+    # Login
+    local token
+    token=$(curl -sf -X POST "${base}/_matrix/client/v3/login" \
+        -H "Content-Type: application/json" \
+        -d "{\"type\":\"m.login.password\",\"identifier\":{\"type\":\"m.id.user\",\"user\":\"${ADMIN_USER}\"},\"password\":\"${ADMIN_PASS}\"}" \
+        | jq -r '.access_token')
+    [ -z "$token" ] && { echo "[init] Login failed" >&2; return 1; }
+
+    # Get admin room
+    local room_id
+    room_id=$(curl -sf "${base}/_matrix/client/v3/joined_rooms" \
+        -H "Authorization: Bearer ${token}" | jq -r '.joined_rooms[0]')
+    [ -z "$room_id" ] && { echo "[init] No admin room found" >&2; return 1; }
+
+    # Check if appservice is already registered
+    local txn
+    txn=$(date +%s%N)
+    curl -sf -X PUT "${base}/_matrix/client/v3/rooms/${room_id}/send/m.room.message/${txn}" \
+        -H "Authorization: Bearer ${token}" \
+        -H "Content-Type: application/json" \
+        -d '{"msgtype":"m.text","body":"!admin appservices list-registered"}' > /dev/null
+    sleep 1
+    local msgs
+    msgs=$(curl -sf "${base}/_matrix/client/v3/rooms/${room_id}/messages?dir=b&limit=3" \
+        -H "Authorization: Bearer ${token}")
+    if echo "$msgs" | jq -r '.chunk[].content.body' 2>/dev/null | grep -q "facebook-bridge"; then
+        echo "[init] Appservice already registered — skipping."
+        return 0
+    fi
+
+    # Register the appservice
+    local yaml_content
+    yaml_content=$(cat "${MAUTRIX_DIR}/registration.yaml")
+    # Build the message body carefully to preserve newlines in the YAML block
+    local msg_body
+    msg_body=$(printf '!admin appservices register\n```\n%s\n```' "${yaml_content}")
+    txn=$(( txn + 1 ))
+    curl -sf -X PUT "${base}/_matrix/client/v3/rooms/${room_id}/send/m.room.message/${txn}" \
+        -H "Authorization: Bearer ${token}" \
+        -H "Content-Type: application/json" \
+        --data-binary "$(jq -n --arg body "${msg_body}" '{"msgtype":"m.text","body":$body}')" \
+        > /dev/null
+    sleep 2
+
+    # Confirm registration
+    msgs=$(curl -sf "${base}/_matrix/client/v3/rooms/${room_id}/messages?dir=b&limit=3" \
+        -H "Authorization: Bearer ${token}")
+    local result
+    result=$(echo "$msgs" | jq -r '.chunk[] | select(.sender == "@conduit:localhost") | .content.body' | head -1)
+    echo "[init] ${result}"
+    echo "$result" | grep -qi "registered" && return 0
+    return 1
+}
+
 _conduwuit_register_appservice() {
     local base="http://127.0.0.1:6167"
     local reg_token
@@ -233,7 +304,7 @@ _conduwuit_register_appservice() {
 
     # Wait for conduwuit to accept connections (up to 30s)
     local i=0
-    until python3 -c "import urllib.request; urllib.request.urlopen('${base}/_matrix/client/versions')" 2>/dev/null; do
+    until curl -sf "${base}/_matrix/client/versions" > /dev/null 2>&1; do
         i=$((i + 1))
         if [ $i -ge 30 ]; then
             echo "[init] ERROR: conduwuit did not start in time" >&2
@@ -243,97 +314,8 @@ _conduwuit_register_appservice() {
         sleep 1
     done
 
-    python3 - <<PYEOF
-import urllib.request, urllib.error, json, time, sys
-
-base = "${base}"
-reg_token = "${reg_token}"
-admin_user = "${ADMIN_USER}"
-admin_pass = "${ADMIN_PASS}"
-
-def post(path, data, token=None):
-    hdrs = {"Content-Type": "application/json"}
-    if token:
-        hdrs["Authorization"] = "Bearer " + token
-    req = urllib.request.Request(base + path, data=json.dumps(data).encode(), headers=hdrs, method="POST")
-    try:
-        r = urllib.request.urlopen(req)
-        return json.loads(r.read()), None
-    except urllib.error.HTTPError as e:
-        return None, json.loads(e.read())
-
-def get(path, token):
-    req = urllib.request.Request(base + path, headers={"Authorization": "Bearer " + token})
-    r = urllib.request.urlopen(req)
-    return json.loads(r.read())
-
-def put(path, data, token):
-    hdrs = {"Content-Type": "application/json", "Authorization": "Bearer " + token}
-    req = urllib.request.Request(base + path, data=json.dumps(data).encode(), headers=hdrs, method="PUT")
-    r = urllib.request.urlopen(req)
-    return json.loads(r.read())
-
-# Register admin account (idempotent — ignored if already exists)
-body, err = post("/_matrix/client/v3/register", {})
-session = (err or {}).get("session", "")
-post("/_matrix/client/v3/register", {
-    "username": admin_user, "password": admin_pass,
-    "auth": {"type": "m.login.registration_token", "token": reg_token, "session": session}
-})
-
-# Login
-resp, err = post("/_matrix/client/v3/login", {
-    "type": "m.login.password",
-    "identifier": {"type": "m.id.user", "user": admin_user},
-    "password": admin_pass,
-})
-if not resp:
-    print("[init] Login failed:", err, file=sys.stderr)
-    sys.exit(1)
-token = resp["access_token"]
-
-# Find admin room
-rooms = get("/_matrix/client/v3/joined_rooms", token)
-if not rooms.get("joined_rooms"):
-    print("[init] No admin room found", file=sys.stderr)
-    sys.exit(1)
-room_id = rooms["joined_rooms"][0]
-
-# Check if already registered
-txn_id = str(int(time.time() * 1000))
-put(f"/_matrix/client/v3/rooms/{room_id}/send/m.room.message/{txn_id}",
-    {"msgtype": "m.text", "body": "!admin appservices list-registered"}, token)
-time.sleep(1)
-
-msgs = get(f"/_matrix/client/v3/rooms/{room_id}/messages?dir=b&limit=3", token)
-for ev in msgs.get("chunk", []):
-    if ev.get("sender") == "@conduit:localhost":
-        body = ev.get("content", {}).get("body", "")
-        if "facebook-bridge" in body:
-            print("[init] Appservice already registered — skipping.")
-            sys.exit(0)
-        break
-
-# Register the appservice
-yaml_content = open("${MAUTRIX_DIR}/registration.yaml").read().strip()
-fence = "\`\`\`"
-msg = "!admin appservices register\n" + fence + "\n" + yaml_content + "\n" + fence
-txn_id = str(int(time.time() * 1000) + 1)
-put(f"/_matrix/client/v3/rooms/{room_id}/send/m.room.message/{txn_id}",
-    {"msgtype": "m.text", "body": msg}, token)
-time.sleep(2)
-
-# Confirm
-msgs = get(f"/_matrix/client/v3/rooms/{room_id}/messages?dir=b&limit=3", token)
-for ev in msgs.get("chunk", []):
-    if ev.get("sender") == "@conduit:localhost":
-        result = ev.get("content", {}).get("body", "")
-        print("[init]", result)
-        if "registered" in result.lower():
-            sys.exit(0)
-        sys.exit(1)
-PYEOF
-    local py_exit=$?
+    _do_matrix_bootstrap "${base}" "${reg_token}"
+    local bootstrap_exit=$?
 
     kill $conduwuit_pid 2>/dev/null || true
     # Give conduwuit a short grace period for WAL flush, then SIGKILL.
@@ -347,7 +329,7 @@ PYEOF
     done
     kill -KILL "$conduwuit_pid" 2>/dev/null || true
     wait $conduwuit_pid 2>/dev/null || true
-    return $py_exit
+    return $bootstrap_exit
 }
 
 # Generate and persist the init admin password on first run
@@ -361,7 +343,7 @@ fi
 
 _conduwuit_register_appservice
 
-# ── Step 5: hand off to supervisord ──────────────────────────────────────────
-# supervisord starts conduwuit → mautrix-meta → bitlbee → stunnel in priority
-# order and restarts any process that crashes.
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/bitlbee-stack.conf
+# ── Step 5: hand off to s6-overlay ───────────────────────────────────────────
+# s6-overlay will now start conduwuit → mautrix-meta → bitlbee → stunnel
+# in dependency order and restart any process that crashes.
+exit 0

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Wait for conduwuit to accept connections before starting the bridge
+until nc -z 127.0.0.1 6167; do sleep 1; done
+exec s6-setuidgid bitlbee /usr/local/bin/mautrix-meta \
+  --config /var/lib/bitlbee/mautrix-meta/config.yaml

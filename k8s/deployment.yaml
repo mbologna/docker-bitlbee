@@ -26,9 +26,8 @@ spec:
         prometheus.io/scrape: "false"
     spec:
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
+        # s6-overlay requires root at startup to set up supervision;
+        # each service drops to uid 1000 (bitlbee) via s6-setuidgid in its run script.
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
@@ -82,8 +81,6 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
             capabilities:
               drop:
                 - ALL

@@ -1,0 +1,2 @@
+#!/bin/sh
+exec s6-setuidgid bitlbee /usr/bin/stunnel4 /var/lib/bitlbee/stunnel.conf

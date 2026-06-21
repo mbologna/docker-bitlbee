@@ -11,6 +11,8 @@ LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.licenses="MIT"
 
 ARG BITLBEE_VERSION=3.6
+# renovate: datasource=github-releases depName=just-containers/s6-overlay
+ARG S6_OVERLAY_VERSION=3.2.3.0
 # renovate: datasource=github-releases depName=girlbossceo/conduwuit
 # Check https://github.com/girlbossceo/conduwuit/releases for the latest version
 ARG CONDUWUIT_VERSION=0.4.6
@@ -121,6 +123,19 @@ RUN cmake -S purple-whatsmeow -B whatsapp-build -DCMAKE_BUILD_TYPE=Release && \
 
 RUN ldconfig && libtool --finish /usr/local/lib/bitlbee
 
+# Download and stage s6-overlay (noarch + arch-specific) into /s6-install.
+# Extracted here in the builder so the runtime stage doesn't need xz-utils.
+RUN case "${TARGETARCH}" in \
+      amd64) S6_ARCH="x86_64"  ;; \
+      arm64) S6_ARCH="aarch64" ;; \
+      *) echo "Unsupported arch: ${TARGETARCH}"; exit 1 ;; \
+    esac && \
+    mkdir /s6-install && \
+    curl -fsSL "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz" \
+      | tar -C /s6-install -Jxp && \
+    curl -fsSL "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz" \
+      | tar -C /s6-install -Jxp
+
 ############################
 # Runtime stage
 ############################
@@ -141,13 +156,20 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       libwebp7 libolm3 libqrencode4 \
       libpng16-16 libgdk-pixbuf-2.0-0 \
       libstdc++6 zlib1g ca-certificates \
-      # supervisor: manages conduwuit, mautrix-meta, bitlbee, and stunnel as sibling processes
-      supervisor \
+      # curl + jq: used by entrypoint bootstrap (Matrix API calls)
+      curl jq \
       # stunnel4 + openssl: TLS termination in front of BitlBee's loopback-only plaintext socket
       stunnel4 openssl \
-      netcat-openbsd tini && \
+      netcat-openbsd && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install s6-overlay from builder stage (avoids needing xz-utils in the runtime image)
+COPY --from=builder /s6-install /
+
+# Copy s6-rc.d service definitions; run scripts must be executable
+COPY s6-overlay/s6-rc.d /etc/s6-overlay/s6-rc.d
+RUN chmod 755 /etc/s6-overlay/s6-rc.d/*/run
 
 # Copy binaries and libraries from builder
 COPY --from=builder /usr/local/lib /usr/local/lib
@@ -192,65 +214,11 @@ COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck.sh
 nc -z localhost 6697 || exit 1
 EOF
 
-# supervisord config
-# Processes start in priority order: conduwuit (10) → mautrix-meta (20) → bitlbee (30)
-# All three auto-restart on failure; mautrix-meta retries many times since it waits for conduwuit
-COPY --chmod=644 <<'EOF' /etc/supervisor/conf.d/bitlbee-stack.conf
-[supervisord]
-nodaemon=true
-logfile=/var/lib/bitlbee/supervisord.log
-logfile_maxbytes=5MB
-pidfile=/var/lib/bitlbee/supervisord.pid
-
-[program:conduwuit]
-command=/usr/local/bin/conduwuit --config /var/lib/bitlbee/conduwuit/conduwuit.toml
-priority=10
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:mautrix-meta]
-command=/usr/local/bin/mautrix-meta --config /var/lib/bitlbee/mautrix-meta/config.yaml
-priority=20
-autostart=true
-autorestart=true
-startsecs=5
-startretries=30
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:bitlbee]
-command=/usr/local/sbin/bitlbee -F -n -v -i 127.0.0.1
-priority=30
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:stunnel]
-command=/usr/bin/stunnel4 /var/lib/bitlbee/stunnel.conf
-priority=40
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-EOF
-
-# Entrypoint: first-run init then supervisord
-COPY --chmod=755 entrypoint.sh /usr/local/bin/entrypoint.sh
+# Entrypoint: first-run init script, run by s6-overlay before services start
+COPY --chmod=755 entrypoint.sh /etc/cont-init.d/10-init.sh
 
 VOLUME ["/var/lib/bitlbee"]
 
-USER bitlbee
 WORKDIR /var/lib/bitlbee
 
 EXPOSE 6697
@@ -258,5 +226,5 @@ EXPOSE 6697
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
   CMD ["/usr/local/bin/healthcheck.sh"]
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/usr/local/bin/entrypoint.sh"]
+# s6-overlay is PID 1 — handles init, zombie reaping, and service supervision
+ENTRYPOINT ["/init"]
