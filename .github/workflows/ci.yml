@@ -29,7 +29,6 @@ jobs:
       yamllint_paths: docker-compose.yml .github/workflows/
       enable_integration_test: true
       enable_release_drafter: true
-      enable_grype: false
     secrets: inherit
 
   auto-release:
