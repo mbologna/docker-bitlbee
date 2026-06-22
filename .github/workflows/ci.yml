@@ -22,38 +22,14 @@ permissions:
   security-events: write
 
 jobs:
-  dismiss-stale-alerts:
-    name: Dismiss stale code scanning alerts
-    runs-on: ubuntu-latest
-    # Only dismiss on non-PR events where scanning actually runs
-    if: github.event_name != 'pull_request'
-    permissions:
-      security-events: write
-    steps:
-      - name: Close all open code scanning alerts before rescan
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api "repos/${{ github.repository }}/code-scanning/alerts" \
-            --paginate -q '.[].number' | \
-          xargs -r -P 10 -I{} gh api --method PATCH \
-            "repos/${{ github.repository }}/code-scanning/alerts/{}" \
-            -f state=dismissed \
-            -f "dismissed_reason=won't fix" \
-            -f dismissed_comment="Auto-dismissed before automated rescan" \
-            2>/dev/null || true
-
   docker:
-    needs: dismiss-stale-alerts
-    # dismiss-stale-alerts is skipped on PRs; make docker not depend on it for PRs
-    if: always()
     uses: mbologna/.github/.github/workflows/docker-ci.yml@6fdc07da84568ecd0267b47c2a3e135687e1a961 # main
     with:
       image_name: docker-bitlbee
       yamllint_paths: docker-compose.yml .github/workflows/
       enable_integration_test: true
       enable_release_drafter: true
-      enable_grype: false
+      enable_grype: true
     secrets: inherit
 
   auto-release:
