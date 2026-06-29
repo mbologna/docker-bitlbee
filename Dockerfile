@@ -3,7 +3,7 @@
 ############################
 # tdlib-builder stage (isolated so TDLib cache is not busted by unrelated version bumps)
 ############################
-FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:1e17f961c9b5fcf79f06cf492fa9a1b2eb59de8db73b84313ac5b3c99713d2ca AS tdlib-builder
+FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:543f00635e939bb6edbcfa44d15238d8fdea7948bccffa63ae2833c5837a28b2 AS tdlib-builder
 
 # tdlib-purple has no recent release tags; always build from master
 ARG TDLIB_PURPLE_VERSION=master
@@ -68,7 +68,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; 
 ############################
 # Builder stage
 ############################
-FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:1e17f961c9b5fcf79f06cf492fa9a1b2eb59de8db73b84313ac5b3c99713d2ca AS builder
+FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:543f00635e939bb6edbcfa44d15238d8fdea7948bccffa63ae2833c5837a28b2 AS builder
 
 LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
