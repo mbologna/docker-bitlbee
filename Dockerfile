@@ -83,7 +83,7 @@ ARG S6_OVERLAY_VERSION=3.2.3.0
 ARG CONDUWUIT_VERSION=0.4.6
 # renovate: datasource=github-releases depName=mautrix/meta
 # Check https://github.com/mautrix/meta/releases for the latest version
-ARG MAUTRIX_META_VERSION=0.2605.1
+ARG MAUTRIX_META_VERSION=0.2606.0
 
 # Plugin versions — tracked by Renovate where release tags are available.
 # EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
