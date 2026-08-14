@@ -84,6 +84,13 @@ spec:
             capabilities:
               drop:
                 - ALL
+              add:
+                # s6-overlay drops privilege per-service via s6-applyuidgid
+                # (root -> uid 1000). Without these, that call fails with
+                # "unable to set supplementary group list: Operation not
+                # permitted" and the bitlbee service never starts.
+                - SETUID
+                - SETGID
 
       volumes:
         - name: data
