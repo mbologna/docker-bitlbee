@@ -5,35 +5,40 @@ IMAGE="${IMAGE_REF:-${DOCKER_USERNAME}/docker-bitlbee:latest}"
 
 docker pull "$IMAGE"
 
+# Polls a container's Docker healthcheck until "healthy", up to 45*2=90s.
+# Exits (with logs) if the container stops or never turns healthy.
+wait_healthy() {
+  local name="$1" status="gone"
+  for i in {1..45}; do
+    status=$(docker inspect --format="{{.State.Health.Status}}" "$name" 2>/dev/null || echo "gone")
+    local running
+    running=$(docker inspect --format="{{.State.Running}}" "$name" 2>/dev/null || echo "false")
+    if [ "$running" != "true" ]; then
+      echo "Container stopped unexpectedly"
+      docker logs "$name"
+      docker rm "$name" || true
+      exit 1
+    fi
+    if [ "$status" = "healthy" ]; then
+      echo "Container is healthy"
+      return 0
+    fi
+    echo "Waiting... ($i/45) [status=$status]"
+    sleep 2
+  done
+  echo "Container failed to become healthy"
+  docker logs "$name"
+  docker rm "$name" || true
+  exit 1
+}
+
 docker run -d --name bitlbee-test \
   -p 6697:6697 \
   -e UID=1000 -e GID=1000 \
   -e MATRIX_REGISTRATION_TOKEN=ci-test-token \
   "$IMAGE"
 
-for i in {1..45}; do
-  STATUS=$(docker inspect --format="{{.State.Health.Status}}" bitlbee-test 2>/dev/null || echo "gone")
-  RUNNING=$(docker inspect --format="{{.State.Running}}" bitlbee-test 2>/dev/null || echo "false")
-  if [ "$RUNNING" != "true" ]; then
-    echo "Container stopped unexpectedly"
-    docker logs bitlbee-test
-    docker rm bitlbee-test || true
-    exit 1
-  fi
-  if [ "$STATUS" = "healthy" ]; then
-    echo "Container is healthy"
-    break
-  fi
-  echo "Waiting... ($i/45) [status=$STATUS]"
-  sleep 2
-done
-
-if [ "$STATUS" != "healthy" ]; then
-  echo "Container failed to become healthy"
-  docker logs bitlbee-test
-  docker rm bitlbee-test || true
-  exit 1
-fi
+wait_healthy bitlbee-test
 
 timeout 10s docker exec bitlbee-test nc -zv localhost 6697 || exit 1
 echo "IRC TLS port 6697 OK"
@@ -91,4 +96,23 @@ PYEOF
 echo "IRC/TLS plugin check OK"
 
 docker stop bitlbee-test && docker rm bitlbee-test
+
+echo "=== Restricted-capability run (mirrors k8s/deployment.yaml securityContext) ==="
+# k8s/deployment.yaml starts the container as root (s6-overlay needs this at
+# startup) with capabilities dropped to just SETUID+SETGID (needed by
+# s6-applyuidgid to drop each service to uid 1000). This run reproduces that
+# exact profile so a regression here — e.g. a future s6-rc service needing a
+# capability we don't grant — fails CI instead of only showing up at deploy
+# time (see https://github.com/mbologna/docker-bitlbee/pull/88).
+docker run -d --name bitlbee-test-restricted \
+  --cap-drop=ALL --cap-add=SETUID --cap-add=SETGID \
+  -e MATRIX_REGISTRATION_TOKEN=ci-test-token-restricted \
+  "$IMAGE"
+
+wait_healthy bitlbee-test-restricted
+
+timeout 10s docker exec bitlbee-test-restricted nc -zv localhost 6697 || exit 1
+echo "IRC TLS port 6697 OK under restricted capabilities"
+
+docker stop bitlbee-test-restricted && docker rm bitlbee-test-restricted
 
