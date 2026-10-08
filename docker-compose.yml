@@ -38,9 +38,6 @@ services:
         max-file: "3"
         compress: "true"
 
-    networks:
-      - bitlbee-net
-
     deploy:
       resources:
         limits:
@@ -55,14 +52,6 @@ services:
 
     cap_drop:
       - ALL
-
-networks:
-  bitlbee-net:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.28.0.0/16
 
 volumes:
   bitlbee-data:
