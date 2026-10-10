@@ -97,7 +97,7 @@ ARG PURPLE_GOOGLECHAT_VERSION=master
 # renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
-ARG PURPLE_WHATSMEOW_VERSION=v1.22.0
+ARG PURPLE_WHATSMEOW_VERSION=v1.26.0
 
 ARG TARGETARCH
 ARG BUILDPLATFORM
