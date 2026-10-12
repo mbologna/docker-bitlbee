@@ -1,12 +1,47 @@
 # syntax=docker/dockerfile:1.27@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 
 ############################
+# Component versions
+############################
+# Global so the runtime stage can label the image with them. Each stage that
+# uses one redeclares it (bare ARG), so tdlib-builder's cache still only
+# depends on TDLIB_PURPLE_VERSION.
+#
+# The image's own version (git tag vX.Y.Z) is independent of all of these:
+# see "Versioning" in README.md.
+
+# tdlib-purple has no recent release tags; always build from master
+ARG TDLIB_PURPLE_VERSION=master
+ARG BITLBEE_VERSION=3.6
+# renovate: datasource=github-releases depName=just-containers/s6-overlay
+ARG S6_OVERLAY_VERSION=3.2.3.0
+# renovate: datasource=github-releases depName=girlbossceo/conduwuit
+# Check https://github.com/girlbossceo/conduwuit/releases for the latest version
+ARG CONDUWUIT_VERSION=0.4.6
+# renovate: datasource=github-releases depName=mautrix/meta
+# Check https://github.com/mautrix/meta/releases for the latest version
+ARG MAUTRIX_META_VERSION=0.2609.0
+
+# Plugin versions — tracked by Renovate where release tags are available.
+# EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
+# so they stay on "master" (always latest) and Renovate does not track them.
+# renovate: datasource=github-tags depName=EionRobb/purple-discord
+ARG PURPLE_DISCORD_VERSION=master
+# renovate: datasource=github-tags depName=EionRobb/purple-teams
+ARG PURPLE_TEAMS_VERSION=master
+# renovate: datasource=github-tags depName=EionRobb/purple-googlechat
+ARG PURPLE_GOOGLECHAT_VERSION=master
+# renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
+ARG BITLBEE_MASTODON_VERSION=v1.4.5
+# renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
+ARG PURPLE_WHATSMEOW_VERSION=v1.26.0
+
+############################
 # tdlib-builder stage (isolated so TDLib cache is not busted by unrelated version bumps)
 ############################
 FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:4241005cb2c47ea99750627baeb06714f6fde7f01a69ce451d85f8dccf0f5691 AS tdlib-builder
 
-# tdlib-purple has no recent release tags; always build from master
-ARG TDLIB_PURPLE_VERSION=master
+ARG TDLIB_PURPLE_VERSION
 ARG TARGETARCH
 ARG BUILDPLATFORM
 
@@ -70,34 +105,15 @@ RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; 
 ############################
 FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:4241005cb2c47ea99750627baeb06714f6fde7f01a69ce451d85f8dccf0f5691 AS builder
 
-LABEL org.opencontainers.image.title="BitlBee container" \
-      org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
-      org.opencontainers.image.url="https://github.com/mbologna/docker-bitlbee" \
-      org.opencontainers.image.licenses="MIT"
-
-ARG BITLBEE_VERSION=3.6
-# renovate: datasource=github-releases depName=just-containers/s6-overlay
-ARG S6_OVERLAY_VERSION=3.2.3.0
-# renovate: datasource=github-releases depName=girlbossceo/conduwuit
-# Check https://github.com/girlbossceo/conduwuit/releases for the latest version
-ARG CONDUWUIT_VERSION=0.4.6
-# renovate: datasource=github-releases depName=mautrix/meta
-# Check https://github.com/mautrix/meta/releases for the latest version
-ARG MAUTRIX_META_VERSION=0.2609.0
-
-# Plugin versions — tracked by Renovate where release tags are available.
-# EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
-# so they stay on "master" (always latest) and Renovate does not track them.
-# renovate: datasource=github-tags depName=EionRobb/purple-discord
-ARG PURPLE_DISCORD_VERSION=master
-# renovate: datasource=github-tags depName=EionRobb/purple-teams
-ARG PURPLE_TEAMS_VERSION=master
-# renovate: datasource=github-tags depName=EionRobb/purple-googlechat
-ARG PURPLE_GOOGLECHAT_VERSION=master
-# renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
-ARG BITLBEE_MASTODON_VERSION=v1.4.5
-# renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
-ARG PURPLE_WHATSMEOW_VERSION=v1.26.0
+ARG BITLBEE_VERSION
+ARG S6_OVERLAY_VERSION
+ARG CONDUWUIT_VERSION
+ARG MAUTRIX_META_VERSION
+ARG PURPLE_DISCORD_VERSION
+ARG PURPLE_TEAMS_VERSION
+ARG PURPLE_GOOGLECHAT_VERSION
+ARG BITLBEE_MASTODON_VERSION
+ARG PURPLE_WHATSMEOW_VERSION
 
 ARG TARGETARCH
 ARG BUILDPLATFORM
@@ -295,6 +311,34 @@ EXPOSE 6697
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
   CMD ["/usr/local/bin/healthcheck.sh"]
+
+# Bundled component versions, readable with:
+#   docker inspect -f '{{json .Config.Labels}}' mbologna/docker-bitlbee:<tag>
+# Declared here, at the end, so a version bump doesn't invalidate the layers above.
+ARG TDLIB_PURPLE_VERSION
+ARG BITLBEE_VERSION
+ARG S6_OVERLAY_VERSION
+ARG CONDUWUIT_VERSION
+ARG MAUTRIX_META_VERSION
+ARG PURPLE_DISCORD_VERSION
+ARG PURPLE_TEAMS_VERSION
+ARG PURPLE_GOOGLECHAT_VERSION
+ARG BITLBEE_MASTODON_VERSION
+ARG PURPLE_WHATSMEOW_VERSION
+LABEL org.opencontainers.image.title="BitlBee container" \
+      org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
+      org.opencontainers.image.url="https://github.com/mbologna/docker-bitlbee" \
+      org.opencontainers.image.licenses="MIT" \
+      io.github.mbologna.docker-bitlbee.tdlib-purple.version="${TDLIB_PURPLE_VERSION}" \
+      io.github.mbologna.docker-bitlbee.bitlbee.version="${BITLBEE_VERSION}" \
+      io.github.mbologna.docker-bitlbee.s6-overlay.version="${S6_OVERLAY_VERSION}" \
+      io.github.mbologna.docker-bitlbee.conduwuit.version="${CONDUWUIT_VERSION}" \
+      io.github.mbologna.docker-bitlbee.mautrix-meta.version="${MAUTRIX_META_VERSION}" \
+      io.github.mbologna.docker-bitlbee.purple-discord.version="${PURPLE_DISCORD_VERSION}" \
+      io.github.mbologna.docker-bitlbee.purple-teams.version="${PURPLE_TEAMS_VERSION}" \
+      io.github.mbologna.docker-bitlbee.purple-googlechat.version="${PURPLE_GOOGLECHAT_VERSION}" \
+      io.github.mbologna.docker-bitlbee.bitlbee-mastodon.version="${BITLBEE_MASTODON_VERSION}" \
+      io.github.mbologna.docker-bitlbee.purple-whatsmeow.version="${PURPLE_WHATSMEOW_VERSION}"
 
 # s6-overlay is PID 1 — handles init, zombie reaping, and service supervision
 ENTRYPOINT ["/init"]

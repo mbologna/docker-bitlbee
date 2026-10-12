@@ -33,6 +33,25 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 
 > **Note:** Twitter/X's built-in BitlBee support requires a paid API key since free-tier access was removed in 2023.
 
+## Versioning
+
+The image has its own version, separate from BitlBee's. A tag `vX.Y.Z` (image
+`mbologna/docker-bitlbee:X.Y.Z`) identifies a build of this repository: a new
+patch release is cut automatically whenever the weekly rebuild produces a
+different image, for example because of a base-image or plugin update.
+
+Up to `v3.6.18` the tags started with BitlBee's version (3.6) and the last
+number counted rebuilds. Releases from `v4.0.0` on use the image's own version.
+
+The bundled component versions are recorded as image labels:
+
+```bash
+docker inspect -f '{{json .Config.Labels}}' mbologna/docker-bitlbee:<tag>
+```
+
+Components built from `master` (tdlib-purple and the EionRobb plugins) are
+labelled `master`; their exact commit is whatever `master` was at build time.
+
 ## Quick Start
 
 ### Docker
