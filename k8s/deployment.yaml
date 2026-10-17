@@ -41,6 +41,9 @@ spec:
             - name: ircs
               containerPort: 6697
               protocol: TCP
+            - name: ircs-matrix
+              containerPort: 6698
+              protocol: TCP
 
           envFrom:
             - configMapRef:
@@ -52,7 +55,7 @@ spec:
 
           resources:
             limits:
-              # Container runs 4 processes: conduwuit + mautrix-meta + bitlbee + stunnel
+              # Container runs 5 processes: conduwuit + mautrix-meta + matrix2051 + bitlbee + stunnel
               memory: 1Gi
               cpu: 1500m
             requests:

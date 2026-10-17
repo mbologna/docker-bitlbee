@@ -21,6 +21,9 @@ ARG CONDUWUIT_VERSION=0.4.6
 # renovate: datasource=github-releases depName=mautrix/meta
 # Check https://github.com/mautrix/meta/releases for the latest version
 ARG MAUTRIX_META_VERSION=0.2609.0
+# matrix2051 (Matrix client exposed as an IRC server) has no release tags;
+# always build from main
+ARG MATRIX2051_VERSION=main
 
 # Plugin versions — tracked by Renovate where release tags are available.
 # EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
@@ -99,6 +102,41 @@ RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; 
     fi && \
     make -C plugin-build -j"$(nproc)" && \
     make -C plugin-build install
+
+############################
+# matrix2051-builder stage
+############################
+# Built for the TARGET platform (no --platform=$BUILDPLATFORM): the release
+# bundles ERTS and OTP's crypto NIF, which are arch-specific. CI builds each
+# arch on a native runner; a local cross build runs this stage under QEMU.
+FROM buildpack-deps:stable-scm@sha256:4241005cb2c47ea99750627baeb06714f6fde7f01a69ce451d85f8dccf0f5691 AS matrix2051-builder
+
+ARG MATRIX2051_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    MIX_ENV=prod
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+WORKDIR /build
+
+# hadolint ignore=DL3008
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+      elixir erlang-nox erlang-dev ca-certificates
+
+RUN git clone --depth=1 --single-branch --branch "${MATRIX2051_VERSION}" \
+      https://github.com/progval/matrix2051.git
+
+WORKDIR /build/matrix2051
+# Listen on 127.0.0.1 only (upstream binds every interface): stunnel is the
+# only way in, so plaintext IRC is never exposed, same as BitlBee. Guarded so
+# an upstream change fails the build instead of silently exposing the port.
+RUN grep -q '^      :inet6,$' lib/irc_server.ex && \
+    sed -i 's/^      :inet6,$/      ip: {127, 0, 0, 1},/' lib/irc_server.ex && \
+    mix local.hex --force && \
+    mix local.rebar --force && \
+    mix deps.get --only prod && \
+    mix release --path /opt/matrix2051
 
 ############################
 # Builder stage
@@ -264,6 +302,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /usr/local/share /usr/local/share
 COPY --from=builder /usr/local/etc /usr/local/etc
 
+# matrix2051: self-contained Elixir release (bundles ERTS)
+COPY --from=matrix2051-builder /opt/matrix2051 /opt/matrix2051
+COPY --chmod=755 scripts/matrix-register /usr/local/bin/matrix-register
+
 # Copy purple plugins and their dependencies
 COPY --from=builder /usr/lib/*-linux-gnu/purple-2 /tmp/purple-2/
 COPY --from=builder /usr/share/pixmaps/pidgin /usr/share/pixmaps/pidgin/
@@ -294,10 +336,11 @@ RUN groupadd -r -g 1000 bitlbee && \
     chown bitlbee:bitlbee /var/run/bitlbee.pid && \
     chmod 644 /var/run/bitlbee.pid
 
-# Health check script — checks the TLS port only; plaintext is loopback-internal
+# Health check script — checks the TLS ports only; plaintext is loopback-internal
 COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck.sh
 #!/bin/sh
 nc -z localhost 6697 || exit 1
+nc -z localhost 6698 || exit 1
 EOF
 
 # Entrypoint: first-run init script, run by s6-overlay before services start
@@ -307,7 +350,7 @@ VOLUME ["/var/lib/bitlbee"]
 
 WORKDIR /var/lib/bitlbee
 
-EXPOSE 6697
+EXPOSE 6697 6698
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
   CMD ["/usr/local/bin/healthcheck.sh"]
@@ -320,6 +363,7 @@ ARG BITLBEE_VERSION
 ARG S6_OVERLAY_VERSION
 ARG CONDUWUIT_VERSION
 ARG MAUTRIX_META_VERSION
+ARG MATRIX2051_VERSION
 ARG PURPLE_DISCORD_VERSION
 ARG PURPLE_TEAMS_VERSION
 ARG PURPLE_GOOGLECHAT_VERSION
@@ -334,6 +378,7 @@ LABEL org.opencontainers.image.title="BitlBee container" \
       io.github.mbologna.docker-bitlbee.s6-overlay.version="${S6_OVERLAY_VERSION}" \
       io.github.mbologna.docker-bitlbee.conduwuit.version="${CONDUWUIT_VERSION}" \
       io.github.mbologna.docker-bitlbee.mautrix-meta.version="${MAUTRIX_META_VERSION}" \
+      io.github.mbologna.docker-bitlbee.matrix2051.version="${MATRIX2051_VERSION}" \
       io.github.mbologna.docker-bitlbee.purple-discord.version="${PURPLE_DISCORD_VERSION}" \
       io.github.mbologna.docker-bitlbee.purple-teams.version="${PURPLE_TEAMS_VERSION}" \
       io.github.mbologna.docker-bitlbee.purple-googlechat.version="${PURPLE_GOOGLECHAT_VERSION}" \

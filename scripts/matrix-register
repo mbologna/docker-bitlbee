@@ -1,0 +1,73 @@
+#!/bin/bash
+# matrix-register — create an account on the built-in Matrix homeserver (conduwuit)
+#
+# Usage: matrix-register [--no-bridge-room] <username> <password> [homeserver-url]
+#
+# Registers @<username>:localhost using the registration token from
+# conduwuit.toml, then opens a direct chat with the Facebook bridge bot
+# (@facebookbot:localhost). matrix2051 shows that chat as the IRC channel
+# #facebook-<username>:localhost, which is where you send "login" to link your
+# Facebook account.
+#
+# Run it inside the container:
+#   docker exec bitlbee matrix-register me 'my-password'
+#
+# --no-bridge-room skips the bridge chat (used by the entrypoint for its
+# internal admin account).
+
+set -euo pipefail
+
+CONDUWUIT_TOML="/var/lib/bitlbee/conduwuit/conduwuit.toml"
+BRIDGE_BOT="@facebookbot:localhost"
+
+bridge_room=1
+if [ "${1:-}" = "--no-bridge-room" ]; then
+    bridge_room=0
+    shift
+fi
+
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
+    echo "Usage: $0 [--no-bridge-room] <username> <password> [homeserver-url]" >&2
+    exit 2
+fi
+
+user="$1"
+pass="$2"
+base="${3:-http://127.0.0.1:6167}"
+
+reg_token=$(grep 'registration_token' "${CONDUWUIT_TOML}" | sed 's/.*= *"\(.*\)"/\1/')
+
+# Registration is a two-step user-interactive auth: the first request returns a
+# session id, the second completes it with the registration token. The session
+# comes back in a 401 body, so no -f here.
+session=$(curl -s -X POST "${base}/_matrix/client/v3/register" \
+    -H "Content-Type: application/json" -d '{}' | jq -r '.session // empty') || true
+result=$(curl -s -X POST "${base}/_matrix/client/v3/register" \
+    -H "Content-Type: application/json" \
+    --data-binary "$(jq -n --arg u "$user" --arg p "$pass" --arg t "$reg_token" --arg s "$session" \
+        '{username: $u, password: $p, auth: {type: "m.login.registration_token", token: $t, session: $s}}')")
+
+if [ -z "$(echo "$result" | jq -r '.user_id // empty')" ]; then
+    echo "Registration failed: $(echo "$result" | jq -r '.error // .')" >&2
+    exit 1
+fi
+echo "Registered $(echo "$result" | jq -r '.user_id')"
+
+[ "$bridge_room" = 1 ] || exit 0
+
+token=$(curl -sf -X POST "${base}/_matrix/client/v3/login" \
+    -H "Content-Type: application/json" \
+    --data-binary "$(jq -n --arg u "$user" --arg p "$pass" \
+        '{type: "m.login.password", identifier: {type: "m.id.user", user: $u}, password: $p}')" \
+    | jq -r '.access_token // empty')
+[ -n "$token" ] || { echo "Login failed" >&2; exit 1; }
+
+# The alias matters: on connect, matrix2051 only lists rooms that have one.
+room_id=$(curl -sf -X POST "${base}/_matrix/client/v3/createRoom" \
+    -H "Authorization: Bearer ${token}" \
+    -H "Content-Type: application/json" \
+    --data-binary "$(jq -n --arg bot "$BRIDGE_BOT" --arg alias "facebook-${user}" \
+        '{preset: "trusted_private_chat", is_direct: true, invite: [$bot], name: "Facebook bridge", room_alias_name: $alias}')" \
+    | jq -r '.room_id // empty')
+[ -n "$room_id" ] || { echo "Could not create the bridge chat" >&2; exit 1; }
+echo "Opened #facebook-${user}:localhost with ${BRIDGE_BOT}; say \"login\" there to link Facebook"

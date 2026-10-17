@@ -41,8 +41,9 @@ if [ ! -f "${MAUTRIX_DIR}/registration.yaml" ]; then
     set -o pipefail
 
     # Appservice registration — registered into conduwuit's database at startup (Step 4).
-    # The regex defines which Matrix user IDs the bridge is allowed to create
-    # (facebook_* users on this homeserver).
+    # The regex defines which Matrix user IDs the bridge owns: the facebook_*
+    # puppets and the bot itself. conduwuit only forwards events that match the
+    # namespace, so without the bot in it, invites to the bot never arrive.
     cat > "${MAUTRIX_DIR}/registration.yaml" <<EOF
 id: facebook-bridge
 url: http://127.0.0.1:29319
@@ -53,7 +54,7 @@ rate_limited: false
 namespaces:
   users:
     - exclusive: true
-      regex: '@facebook_.+:localhost'
+      regex: '@facebook(bot|_.+):localhost'
   aliases: []
   rooms: []
 de.sorunome.msc2409.push_ephemeral: true
@@ -131,6 +132,16 @@ EOF
     echo "[init] mautrix-meta config written to ${MAUTRIX_DIR}/config.yaml"
 fi
 
+# Registrations written before the bot was in the namespace: fix the file and
+# have Step 4 register it again (conduwuit replaces a registration by id).
+REREGISTER_APPSERVICE=0
+if grep -q "regex: '@facebook_.+:localhost'" "${MAUTRIX_DIR}/registration.yaml"; then
+    echo "[init] Adding the bridge bot to the appservice namespace..."
+    sed -i "s/regex: '@facebook_.+:localhost'/regex: '@facebook(bot|_.+):localhost'/" \
+        "${MAUTRIX_DIR}/registration.yaml"
+    REREGISTER_APPSERVICE=1
+fi
+
 # ── Step 2: conduwuit config ──────────────────────────────────────────────────
 # conduwuit is a lightweight Matrix homeserver (fork of Conduit, written in Rust).
 # It runs on loopback only — no external Matrix federation, no TLS needed.
@@ -174,10 +185,9 @@ EOF
     echo "╠══════════════════════════════════════════════════════════════╣"
     echo "║  Matrix registration token: ${REG_TOKEN}"
     echo "║                                                              ║"
-    echo "║  You need this to create your Matrix account in BitlBee:    ║"
-    echo "║    register --token=${REG_TOKEN} \\   ║"
-    echo "║             username password                                ║"
-    echo "║  (see README for full setup steps)                          ║"
+    echo "║  Create your Matrix account with:                            ║"
+    echo "║    docker exec <container> matrix-register <user> <password> ║"
+    echo "║  then connect your IRC client to port 6698 (see README)      ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo ""
 fi
@@ -204,6 +214,7 @@ if [ ! -f "${SSL_DIR}/bitlbee.pem" ]; then
 fi
 
 # Always (re-)write stunnel.conf so the path is correct even after volume moves.
+# 6697 → BitlBee, 6698 → matrix2051 (Matrix as an IRC network); both share the cert.
 cat > "${BITLBEE_DATA}/stunnel.conf" <<EOF
 foreground = yes
 syslog = no
@@ -212,7 +223,15 @@ syslog = no
 accept = 6697
 connect = 127.0.0.1:6667
 cert = ${SSL_DIR}/bitlbee.pem
+
+[matrix2051-tls]
+accept = 6698
+connect = 127.0.0.1:2051
+cert = ${SSL_DIR}/bitlbee.pem
 EOF
+
+# matrix2051's RELEASE_TMP (see s6-rc.d/matrix2051/run)
+mkdir -p "${BITLBEE_DATA}/matrix2051"
 
 # ── Step 4: register mautrix-meta appservice with conduwuit ──────────────────
 # conduwuit stores appservice registrations in its database — there is no config
@@ -228,15 +247,9 @@ ADMIN_PASS="$(cat "${CONDUWUIT_DIR}/init_admin_pass" 2>/dev/null || true)"
 
 _do_matrix_bootstrap() {
     local base="$1"
-    local reg_token="$2"
 
     # Register admin account (idempotent — ok if already exists)
-    local session
-    session=$(curl -sf -X POST "${base}/_matrix/client/v3/register" \
-        -H "Content-Type: application/json" -d '{}' | jq -r '.session // empty') || true
-    curl -sf -X POST "${base}/_matrix/client/v3/register" \
-        -H "Content-Type: application/json" \
-        -d "{\"username\":\"${ADMIN_USER}\",\"password\":\"${ADMIN_PASS}\",\"auth\":{\"type\":\"m.login.registration_token\",\"token\":\"${reg_token}\",\"session\":\"${session}\"}}" \
+    /usr/local/bin/matrix-register --no-bridge-room "${ADMIN_USER}" "${ADMIN_PASS}" "${base}" \
         > /dev/null 2>&1 || true
 
     # Login
@@ -264,7 +277,8 @@ _do_matrix_bootstrap() {
     local msgs
     msgs=$(curl -sf "${base}/_matrix/client/v3/rooms/${room_id}/messages?dir=b&limit=3" \
         -H "Authorization: Bearer ${token}")
-    if echo "$msgs" | jq -r '.chunk[].content.body' 2>/dev/null | grep -q "facebook-bridge"; then
+    if [ "${REREGISTER_APPSERVICE}" = 0 ] &&
+        echo "$msgs" | jq -r '.chunk[].content.body' 2>/dev/null | grep -q "facebook-bridge"; then
         echo "[init] Appservice already registered — skipping."
         return 0
     fi
@@ -295,8 +309,6 @@ _do_matrix_bootstrap() {
 
 _conduwuit_register_appservice() {
     local base="http://127.0.0.1:6167"
-    local reg_token
-    reg_token=$(grep 'registration_token' "${CONDUWUIT_DIR}/conduwuit.toml" | sed 's/.*= *"\(.*\)"/\1/')
 
     echo "[init] Starting conduwuit for appservice bootstrap..."
     /usr/local/bin/conduwuit --config "${CONDUWUIT_DIR}/conduwuit.toml" &
@@ -314,8 +326,11 @@ _conduwuit_register_appservice() {
         sleep 1
     done
 
-    _do_matrix_bootstrap "${base}" "${reg_token}"
-    local bootstrap_exit=$?
+    # Capture the failure instead of letting set -e exit here: the temporary
+    # conduwuit must be stopped either way, or it keeps the database lock and
+    # the supervised conduwuit can't start.
+    local bootstrap_exit=0
+    _do_matrix_bootstrap "${base}" || bootstrap_exit=$?
 
     kill $conduwuit_pid 2>/dev/null || true
     # Give conduwuit a short grace period for WAL flush, then SIGKILL.

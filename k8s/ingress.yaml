@@ -19,6 +19,11 @@
 #       port: 6697
 #       targetPort: ircs
 #       nodePort: 30697  # Choose a port in the 30000-32767 range
+#     - name: ircs-matrix
+#       protocol: TCP
+#       port: 6698
+#       targetPort: ircs-matrix
+#       nodePort: 30698
 #   selector:
 #     app.kubernetes.io/name: bitlbee
 #     app.kubernetes.io/component: gateway
@@ -45,6 +50,10 @@
 #       protocol: TCP
 #       port: 6697
 #       targetPort: ircs
+#     - name: ircs-matrix
+#       protocol: TCP
+#       port: 6698
+#       targetPort: ircs-matrix
 #   selector:
 #     app.kubernetes.io/name: bitlbee
 #   sessionAffinity: ClientIP

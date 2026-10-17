@@ -1,0 +1,6 @@
+#!/bin/sh
+# Standalone node: no distribution, so no epmd and no node name to resolve.
+# RELEASE_TMP must be writable; /opt/matrix2051 is root-owned.
+export RELEASE_DISTRIBUTION=none
+export RELEASE_TMP=/var/lib/bitlbee/matrix2051
+exec s6-setuidgid bitlbee /opt/matrix2051/bin/matrix2051 start
