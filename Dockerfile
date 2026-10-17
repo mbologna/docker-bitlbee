@@ -24,6 +24,8 @@ ARG MAUTRIX_META_VERSION=0.2609.0
 # matrix2051 (Matrix client exposed as an IRC server) has no release tags;
 # always build from main
 ARG MATRIX2051_VERSION=main
+# renovate: datasource=pypi depName=heisenbridge
+ARG HEISENBRIDGE_VERSION=1.15.4
 
 # Plugin versions — tracked by Renovate where release tags are available.
 # EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
@@ -137,6 +139,30 @@ RUN grep -q '^      :inet6,$' lib/irc_server.ex && \
     mix local.rebar --force && \
     mix deps.get --only prod && \
     mix release --path /opt/matrix2051
+
+############################
+# heisenbridge-builder stage
+############################
+# A virtualenv with heisenbridge (Matrix -> IRC bridge, used to reach BitlBee
+# from Matrix clients). Built for the TARGET platform: some dependencies
+# (aiohttp, yarl, ...) ship compiled wheels. The runtime stage has the same
+# Debian python3, so the venv runs there unchanged.
+FROM buildpack-deps:stable-scm@sha256:4241005cb2c47ea99750627baeb06714f6fde7f01a69ce451d85f8dccf0f5691 AS heisenbridge-builder
+
+ARG HEISENBRIDGE_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# hadolint ignore=DL3008
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+      python3 python3-venv
+
+RUN python3 -m venv /opt/heisenbridge && \
+    /opt/heisenbridge/bin/pip install --no-cache-dir "heisenbridge==${HEISENBRIDGE_VERSION}" && \
+    /opt/heisenbridge/bin/heisenbridge --version
 
 ############################
 # Builder stage
@@ -284,6 +310,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       curl jq \
       # stunnel4 + openssl: TLS termination in front of BitlBee's loopback-only plaintext socket
       stunnel4 openssl \
+      # python3: runs the heisenbridge virtualenv
+      python3 \
       netcat-openbsd && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -304,6 +332,8 @@ COPY --from=builder /usr/local/etc /usr/local/etc
 
 # matrix2051: self-contained Elixir release (bundles ERTS)
 COPY --from=matrix2051-builder /opt/matrix2051 /opt/matrix2051
+# heisenbridge: virtualenv, runs on the runtime's python3
+COPY --from=heisenbridge-builder /opt/heisenbridge /opt/heisenbridge
 COPY --chmod=755 scripts/matrix-register /usr/local/bin/matrix-register
 
 # Copy purple plugins and their dependencies
@@ -341,6 +371,7 @@ COPY --chmod=755 <<'EOF' /usr/local/bin/healthcheck.sh
 #!/bin/sh
 nc -z localhost 6697 || exit 1
 nc -z localhost 6698 || exit 1
+nc -z localhost 6699 || exit 1
 EOF
 
 # Entrypoint: first-run init script, run by s6-overlay before services start
@@ -350,7 +381,7 @@ VOLUME ["/var/lib/bitlbee"]
 
 WORKDIR /var/lib/bitlbee
 
-EXPOSE 6697 6698
+EXPOSE 6697 6698 6699
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
   CMD ["/usr/local/bin/healthcheck.sh"]
@@ -364,6 +395,7 @@ ARG S6_OVERLAY_VERSION
 ARG CONDUWUIT_VERSION
 ARG MAUTRIX_META_VERSION
 ARG MATRIX2051_VERSION
+ARG HEISENBRIDGE_VERSION
 ARG PURPLE_DISCORD_VERSION
 ARG PURPLE_TEAMS_VERSION
 ARG PURPLE_GOOGLECHAT_VERSION
@@ -379,6 +411,7 @@ LABEL org.opencontainers.image.title="BitlBee container" \
       io.github.mbologna.docker-bitlbee.conduwuit.version="${CONDUWUIT_VERSION}" \
       io.github.mbologna.docker-bitlbee.mautrix-meta.version="${MAUTRIX_META_VERSION}" \
       io.github.mbologna.docker-bitlbee.matrix2051.version="${MATRIX2051_VERSION}" \
+      io.github.mbologna.docker-bitlbee.heisenbridge.version="${HEISENBRIDGE_VERSION}" \
       io.github.mbologna.docker-bitlbee.purple-discord.version="${PURPLE_DISCORD_VERSION}" \
       io.github.mbologna.docker-bitlbee.purple-teams.version="${PURPLE_TEAMS_VERSION}" \
       io.github.mbologna.docker-bitlbee.purple-googlechat.version="${PURPLE_GOOGLECHAT_VERSION}" \

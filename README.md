@@ -5,7 +5,7 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
-A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in: the container only listens on port **6697** (BitlBee) and port **6698** (Matrix), both IRC over TLS; plaintext is never exposed.
+A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in: the container only listens on port **6697** (BitlBee) and port **6698** (Matrix), both IRC over TLS, and port **6699** (Matrix client API, HTTPS); plaintext is never exposed.
 
 ## Technical Features
 
@@ -32,6 +32,8 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 - WhatsApp ([purple-whatsmeow](https://github.com/hoehermann/purple-gowhatsapp))
 
 **Matrix:** any homeserver, through [matrix2051](https://github.com/progval/matrix2051) on port 6698 (see [Matrix](#matrix)). This is a second IRC network next to BitlBee, not a BitlBee account.
+
+**From a Matrix client:** Element and other Matrix clients can use BitlBee through [Heisenbridge](https://github.com/hifi/heisenbridge) on port 6699 (see [BitlBee from a Matrix client](#bitlbee-from-a-matrix-client)).
 
 > **Note:** Twitter/X's built-in BitlBee support requires a paid API key since free-tier access was removed in 2023.
 
@@ -68,6 +70,7 @@ docker run -d \
   --user $(id -u):$(id -g) \
   -p 6697:6697 \
   -p 6698:6698 \
+  -p 6699:6699 \
   -v bitlbee-data:/var/lib/bitlbee \
   mbologna/docker-bitlbee:latest
 ```
@@ -90,6 +93,7 @@ docker-compose up -d
 
 # Access BitlBee (TLS)
 # IRC over TLS: localhost:6697 (BitlBee), localhost:6698 (Matrix)
+# Matrix clients (HTTPS): https://localhost:6699
 ```
 
 #### Docker Compose Configuration
@@ -103,6 +107,7 @@ UID=1000                        # User ID for file permissions
 GID=1000                        # Group ID for file permissions
 BITLBEE_PORT=6697               # BitlBee TLS port (default: 6697)
 MATRIX_PORT=6698                # matrix2051 TLS port (default: 6698)
+MATRIX_CLIENT_PORT=6699         # Matrix client API TLS port (default: 6699)
 TZ=UTC                          # Timezone
 MATRIX_REGISTRATION_TOKEN=      # Optional: set a fixed Matrix registration token
                                  # (auto-generated on first run if left empty)
@@ -123,10 +128,10 @@ kubectl apply -f k8s/
 kubectl get pods -n bitlbee
 
 # Access from within cluster (TLS only)
-# bitlbee.bitlbee.svc.cluster.local:6697 (BitlBee), :6698 (Matrix)
+# bitlbee.bitlbee.svc.cluster.local:6697 (BitlBee), :6698 (Matrix), :6699 (Matrix clients)
 
 # Port forward for external access
-kubectl port-forward -n bitlbee svc/bitlbee 6697:6697 6698:6698
+kubectl port-forward -n bitlbee svc/bitlbee 6697:6697 6698:6698 6699:6699
 ```
 
 #### Kubernetes Configuration
@@ -137,7 +142,7 @@ Managed by PersistentVolumeClaim (default: 128Mi, configurable in `k8s/pvc.yaml`
 
 ##### Exposing Services
 
-Edit `k8s/ingress.yaml` (uncomment the relevant block) to choose between NodePort and LoadBalancer. Both examples expose ports **6697** (BitlBee) and **6698** (Matrix).
+Edit `k8s/ingress.yaml` (uncomment the relevant block) to choose between NodePort and LoadBalancer. Both examples expose ports **6697** (BitlBee), **6698** (Matrix) and **6699** (Matrix clients).
 
 **NodePort** (for bare-metal clusters):
 ```yaml
@@ -150,6 +155,9 @@ spec:
     - name: ircs-matrix
       port: 6698
       nodePort: 30698
+    - name: https-matrix
+      port: 6699
+      nodePort: 30699
 ```
 
 **LoadBalancer** (for cloud providers):
@@ -161,6 +169,8 @@ spec:
       port: 6697
     - name: ircs-matrix
       port: 6698
+    - name: https-matrix
+      port: 6699
 ```
 
 ##### Resource Limits
@@ -292,6 +302,40 @@ Facebook Messenger is bridged by [mautrix-meta](https://github.com/mautrix/meta)
 Once linked, the bridge invites you to a Matrix room for each Facebook chat. Accept with `/join <channel>` when your client shows the invite. Each chat then appears as a `!…:localhost` channel when a message arrives (see the limitations above).
 
 `matrix-register` reads the registration token from the container. The token is also printed in the logs on first start, or can be fixed with `MATRIX_REGISTRATION_TOKEN` in `.env`.
+
+## BitlBee from a Matrix client
+
+The other direction: use BitlBee's accounts (Discord, Telegram, WhatsApp, …) from Element or another Matrix client. [Heisenbridge](https://github.com/hifi/heisenbridge) connects to BitlBee inside the container and turns each BitlBee contact and channel into a Matrix room. Your client talks to the built-in homeserver on port **6699** (HTTPS).
+
+The homeserver stays private: user IDs end in `:localhost` and it doesn't federate, so you can only talk to bridged contacts, not to users on matrix.org. Facebook chats from the [Facebook bridge](#example-facebook-messenger-with-2fa) show up in the same client as plain Matrix rooms.
+
+1. Create your account on the built-in homeserver, if you haven't already:
+   ```bash
+   docker exec bitlbee matrix-register me 'my-password'
+   ```
+
+2. In your Matrix client, set the homeserver to `https://<your-host>:6699` and log in as `me` with that password. The certificate is self-signed unless you replaced it (see [Quick Start](#quick-start)). With Element Web, open `https://<your-host>:6699` in the same browser once and accept it. Element Desktop and mobile apps need a real certificate.
+
+3. Start a direct chat with `@heisenbridge:localhost`. The first local user to do this becomes the bridge's owner, so do it right after setting up the container. Then, in that chat:
+   ```
+   ADDNETWORK bitlbee
+   ADDSERVER bitlbee 127.0.0.1 6667
+   OPEN bitlbee
+   ```
+
+4. Accept the invite to the `bitlbee` room. If you registered with BitlBee (`register <password>` in `&bitlbee`), store that password so the bridge identifies on connect, then connect:
+   ```
+   PASSWORD <your-bitlbee-password>
+   CONNECT
+   ```
+
+BitlBee's `&bitlbee` control channel and each contact you chat with then appear as rooms. Use `help` in the bridge rooms for Heisenbridge's commands.
+
+Limitations:
+
+- **No end-to-end encryption.** Heisenbridge doesn't support it. Rooms the bridge creates are unencrypted; don't enable encryption in them.
+- Tested through the Matrix client API, not with a particular app. Element X also needs sliding sync from the homeserver, which hasn't been tried here; Element Web is the safest choice.
+- Port 6699 exposes the homeserver's client API. Sign-up needs the registration token, but treat the port like 6697.
 
 ## Star History
 

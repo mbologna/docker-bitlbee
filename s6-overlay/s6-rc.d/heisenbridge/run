@@ -1,0 +1,9 @@
+#!/bin/sh
+# Wait for conduwuit before starting the bridge (same as mautrix-meta).
+# The bridge reaches BitlBee on 127.0.0.1:6667 once a user adds it as a network.
+# No -v: at info level aiohttp logs request URLs, which carry the hs_token.
+until nc -z 127.0.0.1 6167; do sleep 1; done
+exec s6-setuidgid bitlbee /opt/heisenbridge/bin/heisenbridge \
+  -c /var/lib/bitlbee/heisenbridge/registration.yaml \
+  -l 127.0.0.1 -p 9898 \
+  http://127.0.0.1:6167

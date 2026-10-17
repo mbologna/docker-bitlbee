@@ -13,6 +13,7 @@ services:
     ports:
       - "${BITLBEE_PORT:-6697}:6697"
       - "${MATRIX_PORT:-6698}:6698"
+      - "${MATRIX_CLIENT_PORT:-6699}:6699"
 
     volumes:
       - bitlbee-data:/var/lib/bitlbee

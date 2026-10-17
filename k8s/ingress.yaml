@@ -24,6 +24,11 @@
 #       port: 6698
 #       targetPort: ircs-matrix
 #       nodePort: 30698
+#     - name: https-matrix
+#       protocol: TCP
+#       port: 6699
+#       targetPort: https-matrix
+#       nodePort: 30699
 #   selector:
 #     app.kubernetes.io/name: bitlbee
 #     app.kubernetes.io/component: gateway
@@ -54,6 +59,10 @@
 #       protocol: TCP
 #       port: 6698
 #       targetPort: ircs-matrix
+#     - name: https-matrix
+#       protocol: TCP
+#       port: 6699
+#       targetPort: https-matrix
 #   selector:
 #     app.kubernetes.io/name: bitlbee
 #   sessionAffinity: ClientIP

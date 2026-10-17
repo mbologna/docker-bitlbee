@@ -35,6 +35,7 @@ wait_healthy() {
 docker run -d --name bitlbee-test \
   -p 6697:6697 \
   -p 6698:6698 \
+  -p 6699:6699 \
   -e UID=1000 -e GID=1000 \
   -e MATRIX_REGISTRATION_TOKEN=ci-test-token \
   "$IMAGE"
@@ -170,6 +171,102 @@ if not ok:
 PYEOF2
 echo "Matrix over IRC/TLS check OK"
 
+echo "=== Verifying BitlBee from Matrix (heisenbridge, client API on 6699) ==="
+# As @ci:localhost over the TLS client API: DM the heisenbridge bot, add
+# BitlBee as a network, connect, and wait for BitlBee's greeting to come back
+# through the bridge.
+python3 - <<'PYEOF2'
+import json, ssl, sys, time, urllib.parse, urllib.request
+
+BASE = "https://localhost:6699"
+USER, PASSWORD = "ci", "ci-pass"
+BOT = "@heisenbridge:localhost"
+CTX = ssl.create_default_context()
+CTX.check_hostname = False
+CTX.verify_mode = ssl.CERT_NONE
+token = None
+txn = 0
+
+
+def api(method, path, body=None):
+    req = urllib.request.Request(BASE + path, method=method,
+                                 data=None if body is None else json.dumps(body).encode())
+    req.add_header("Content-Type", "application/json")
+    if token:
+        req.add_header("Authorization", "Bearer " + token)
+    with urllib.request.urlopen(req, context=CTX, timeout=40) as r:
+        return json.load(r)
+
+
+def say(room, text):
+    global txn
+    txn += 1
+    api("PUT", f"/_matrix/client/v3/rooms/{urllib.parse.quote(room)}/send/m.room.message/t{time.time_ns()}{txn}",
+        {"msgtype": "m.text", "body": text})
+
+
+since = None
+
+
+def sync():
+    global since
+    q = {"timeout": "5000"}
+    if since:
+        q["since"] = since
+    r = api("GET", "/_matrix/client/v3/sync?" + urllib.parse.urlencode(q))
+    since = r["next_batch"]
+    return r
+
+
+def wait_for(pred, what, timeout=60):
+    end = time.time() + timeout
+    while time.time() < end:
+        hit = pred(sync())
+        if hit:
+            return hit
+    print(f"FAIL: timed out waiting for {what}", file=sys.stderr)
+    sys.exit(1)
+
+
+def messages(r, room=None):
+    for rid, data in r.get("rooms", {}).get("join", {}).items():
+        if room and rid != room:
+            continue
+        for ev in data.get("timeline", {}).get("events", []):
+            if ev.get("type") == "m.room.message":
+                yield rid, ev["sender"], ev["content"].get("body", "")
+
+
+def invite_from(r, sender):
+    for rid, data in r.get("rooms", {}).get("invite", {}).items():
+        for ev in data.get("invite_state", {}).get("events", []):
+            if ev.get("type") == "m.room.member" and ev.get("sender") == sender:
+                return rid
+
+
+token = api("POST", "/_matrix/client/v3/login",
+            {"type": "m.login.password", "identifier": {"type": "m.id.user", "user": USER},
+             "password": PASSWORD})["access_token"]
+sync()
+
+control = api("POST", "/_matrix/client/v3/createRoom",
+              {"preset": "trusted_private_chat", "is_direct": True, "invite": [BOT]})["room_id"]
+wait_for(lambda r: any(s == BOT for _, s, _ in messages(r, control)), "heisenbridge to answer in its control room")
+print("heisenbridge answered in the control room")
+
+for cmd in ("ADDNETWORK bitlbee", "ADDSERVER bitlbee 127.0.0.1 6667", "OPEN bitlbee"):
+    say(control, cmd)
+network = wait_for(lambda r: invite_from(r, BOT), "the bitlbee network room invite")
+api("POST", f"/_matrix/client/v3/join/{urllib.parse.quote(network)}", {})
+print("joined the bitlbee network room")
+
+say(network, "CONNECT")
+hit = wait_for(lambda r: next((b for rid, s, b in messages(r) if "BitlBee" in b), None),
+               "BitlBee's welcome over the bridge", timeout=90)
+print("BitlBee answered over the bridge:", hit[:100])
+PYEOF2
+echo "BitlBee from Matrix check OK"
+
 docker stop bitlbee-test && docker rm bitlbee-test
 
 echo "=== Restricted-capability run (mirrors k8s/deployment.yaml securityContext) ==="
@@ -190,6 +287,8 @@ timeout 10s docker exec bitlbee-test-restricted nc -zv localhost 6697 || exit 1
 echo "IRC TLS port 6697 OK under restricted capabilities"
 timeout 10s docker exec bitlbee-test-restricted nc -zv localhost 6698 || exit 1
 echo "IRC TLS port 6698 OK under restricted capabilities"
+timeout 10s docker exec bitlbee-test-restricted nc -zv localhost 6699 || exit 1
+echo "Matrix client TLS port 6699 OK under restricted capabilities"
 
 docker stop bitlbee-test-restricted && docker rm bitlbee-test-restricted
 

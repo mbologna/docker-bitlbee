@@ -1,5 +1,5 @@
 #!/bin/bash
-# entrypoint.sh — first-run initialization for conduwuit + mautrix-meta + bitlbee
+# entrypoint.sh — first-run initialization for conduwuit + mautrix-meta + heisenbridge + bitlbee
 #
 # Installed as /etc/cont-init.d/10-init.sh; s6-overlay runs it before starting
 # any services.  On first run this script generates:
@@ -22,8 +22,9 @@ set -euo pipefail
 BITLBEE_DATA="/var/lib/bitlbee"
 CONDUWUIT_DIR="${BITLBEE_DATA}/conduwuit"
 MAUTRIX_DIR="${BITLBEE_DATA}/mautrix-meta"
+HEISENBRIDGE_DIR="${BITLBEE_DATA}/heisenbridge"
 
-mkdir -p "${CONDUWUIT_DIR}/db" "${MAUTRIX_DIR}"
+mkdir -p "${CONDUWUIT_DIR}/db" "${MAUTRIX_DIR}" "${HEISENBRIDGE_DIR}"
 
 # ── Step 1: mautrix-meta registration & config ────────────────────────────────
 # The appservice registration file tells conduwuit which Matrix user namespace
@@ -142,6 +143,35 @@ if grep -q "regex: '@facebook_.+:localhost'" "${MAUTRIX_DIR}/registration.yaml";
     REREGISTER_APPSERVICE=1
 fi
 
+# ── Step 1b: heisenbridge registration ───────────────────────────────────────
+# Heisenbridge bridges BitlBee into Matrix: a Matrix client sees each BitlBee
+# contact as a direct chat. It keeps its own state in the homeserver, so the
+# registration file is all it needs. Same shape as `heisenbridge
+# --generate-compat`: the bot is in the namespace, which conduwuit requires.
+if [ ! -f "${HEISENBRIDGE_DIR}/registration.yaml" ]; then
+    echo "[init] Generating heisenbridge registration tokens..."
+    set +o pipefail
+    HB_AS_TOKEN=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 64)
+    HB_HS_TOKEN=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 64)
+    set -o pipefail
+    cat > "${HEISENBRIDGE_DIR}/registration.yaml" <<EOF
+id: heisenbridge
+url: http://127.0.0.1:9898
+as_token: ${HB_AS_TOKEN}
+hs_token: ${HB_HS_TOKEN}
+sender_localpart: heisenbridge
+rate_limited: false
+namespaces:
+  users:
+    - exclusive: true
+      regex: '@irc_.*'
+    - exclusive: true
+      regex: '@heisenbridge:.*'
+  aliases: []
+  rooms: []
+EOF
+fi
+
 # ── Step 2: conduwuit config ──────────────────────────────────────────────────
 # conduwuit is a lightweight Matrix homeserver (fork of Conduit, written in Rust).
 # It runs on loopback only — no external Matrix federation, no TLS needed.
@@ -214,7 +244,8 @@ if [ ! -f "${SSL_DIR}/bitlbee.pem" ]; then
 fi
 
 # Always (re-)write stunnel.conf so the path is correct even after volume moves.
-# 6697 → BitlBee, 6698 → matrix2051 (Matrix as an IRC network); both share the cert.
+# 6697 → BitlBee, 6698 → matrix2051 (Matrix as an IRC network), 6699 → conduwuit's
+# client API (for Matrix clients such as Element); all share the cert.
 cat > "${BITLBEE_DATA}/stunnel.conf" <<EOF
 foreground = yes
 syslog = no
@@ -228,20 +259,25 @@ cert = ${SSL_DIR}/bitlbee.pem
 accept = 6698
 connect = 127.0.0.1:2051
 cert = ${SSL_DIR}/bitlbee.pem
+
+[matrix-client-tls]
+accept = 6699
+connect = 127.0.0.1:6167
+cert = ${SSL_DIR}/bitlbee.pem
 EOF
 
 # matrix2051's RELEASE_TMP (see s6-rc.d/matrix2051/run)
 mkdir -p "${BITLBEE_DATA}/matrix2051"
 
-# ── Step 4: register mautrix-meta appservice with conduwuit ──────────────────
+# ── Step 4: register the appservices with conduwuit ──────────────────────────
 # conduwuit stores appservice registrations in its database — there is no config
 # file option for this. We bootstrap it by starting conduwuit briefly, creating
 # an internal admin account, and sending the !admin appservices register command
 # to the admin room via the Matrix API. The admin account is only used for this
 # purpose and is never exposed externally.
 #
-# This step is idempotent: it checks whether the appservice is already registered
-# before attempting to register it, so it is safe to run on every container start.
+# This step is idempotent: it checks whether each appservice is already
+# registered before registering it, so it is safe to run on every container start.
 ADMIN_USER="conduwuit-init"
 ADMIN_PASS="$(cat "${CONDUWUIT_DIR}/init_admin_pass" 2>/dev/null || true)"
 
@@ -266,29 +302,38 @@ _do_matrix_bootstrap() {
         -H "Authorization: Bearer ${token}" | jq -r '.joined_rooms[0]')
     [ -z "$room_id" ] && { echo "[init] No admin room found" >&2; return 1; }
 
-    # Check if appservice is already registered
-    local txn
+    # Each entry: <appservice id> <registration file> <force re-register 0/1>
+    local rc=0
+    _register_appservice "$base" "$token" "$room_id" facebook-bridge \
+        "${MAUTRIX_DIR}/registration.yaml" "${REREGISTER_APPSERVICE}" || rc=1
+    _register_appservice "$base" "$token" "$room_id" heisenbridge \
+        "${HEISENBRIDGE_DIR}/registration.yaml" 0 || rc=1
+    return $rc
+}
+
+# Sends "!admin appservices register" with a registration file to the admin
+# room, unless that id is already registered (and no re-registration is forced).
+_register_appservice() {
+    local base="$1" token="$2" room_id="$3" as_id="$4" yaml_file="$5" force="$6"
+    local txn msgs
     txn=$(date +%s%N)
     curl -sf -X PUT "${base}/_matrix/client/v3/rooms/${room_id}/send/m.room.message/${txn}" \
         -H "Authorization: Bearer ${token}" \
         -H "Content-Type: application/json" \
         -d '{"msgtype":"m.text","body":"!admin appservices list-registered"}' > /dev/null
     sleep 1
-    local msgs
     msgs=$(curl -sf "${base}/_matrix/client/v3/rooms/${room_id}/messages?dir=b&limit=3" \
         -H "Authorization: Bearer ${token}")
-    if [ "${REREGISTER_APPSERVICE}" = 0 ] &&
-        echo "$msgs" | jq -r '.chunk[].content.body' 2>/dev/null | grep -q "facebook-bridge"; then
-        echo "[init] Appservice already registered — skipping."
+    if [ "${force}" = 0 ] &&
+        echo "$msgs" | jq -r '.chunk[] | select(.sender == "@conduit:localhost") | .content.body' \
+            2>/dev/null | head -1 | grep -qw "${as_id}"; then
+        echo "[init] Appservice ${as_id} already registered — skipping."
         return 0
     fi
 
-    # Register the appservice
-    local yaml_content
-    yaml_content=$(cat "${MAUTRIX_DIR}/registration.yaml")
     # Build the message body carefully to preserve newlines in the YAML block
     local msg_body
-    msg_body=$(printf '!admin appservices register\n```\n%s\n```' "${yaml_content}")
+    msg_body=$(printf '!admin appservices register\n```\n%s\n```' "$(cat "${yaml_file}")")
     txn=$(( txn + 1 ))
     curl -sf -X PUT "${base}/_matrix/client/v3/rooms/${room_id}/send/m.room.message/${txn}" \
         -H "Authorization: Bearer ${token}" \
