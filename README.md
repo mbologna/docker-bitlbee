@@ -230,6 +230,8 @@ save
 
 ## Matrix
 
+> Looking for `account add matrix`? Matrix is not a BitlBee account here: add a second IRC server on port 6698 instead, as described below.
+
 BitlBee has no maintained Matrix plugin, so Matrix is served by [matrix2051](https://github.com/progval/matrix2051), a Matrix client that acts as an IRC server. It is a **second IRC network** in your client, on port **6698** (TLS), next to BitlBee on 6697. It reaches the container's built-in homeserver (needed for Facebook) and any other homeserver.
 
 matrix2051 logs in with SASL PLAIN. The SASL username is your Matrix ID without the leading `@` (`me:matrix.org`), and the password is your Matrix password. The IRC "real name" (GECOS) can carry the homeserver URL when it can't be discovered.
@@ -254,6 +256,11 @@ In WeeChat (adapt for your client):
 
 Leave the real name empty; the homeserver is found through `.well-known`. Join rooms with `/join #room:matrix.org`.
 
+On matrix.org:
+
+- You need a password. Accounts created with "Sign in with Google/GitHub/…" have none; check at [account.matrix.org](https://account.matrix.org/).
+- Direct messages and most private rooms are end-to-end encrypted by default, so in practice only public rooms are readable.
+
 ### Example: Facebook Messenger (with 2FA)
 
 Facebook Messenger is bridged by [mautrix-meta](https://github.com/mautrix/meta) on the container's built-in Matrix homeserver ([conduwuit](https://github.com/girlbossceo/conduwuit)). Both run inside the container; no extra services needed. The homeserver is private: it listens on loopback only and doesn't federate.
@@ -274,7 +281,13 @@ Facebook Messenger is bridged by [mautrix-meta](https://github.com/mautrix/meta)
    /connect fb
    ```
 
-3. In `#facebook-me:localhost`, say `login`. The bot guides you through a QR code or link-based login. This works with 2FA and does not use the old (broken) mobile API.
+3. In `#facebook-me:localhost`, say `login facebook`. The bridge logs in with your browser's session cookies, not your password:
+   1. Log into facebook.com in a private browser window.
+   2. Open devtools, go to the Network tab and filter for `graphql`.
+   3. Right-click one of the requests, then choose **Copy** → **Copy as cURL**.
+   4. Join the copied command into a single line and paste it to the bot. Most IRC clients send each pasted line as a separate message.
+
+   See the [mautrix-meta authentication docs](https://docs.mau.fi/bridges/go/meta/authentication.html) for details. Meta may flag the login as suspicious and ask for a captcha, a phone number or a password reset; enabling 2FA beforehand helps.
 
 Once linked, the bridge invites you to a Matrix room for each Facebook chat. Accept with `/join <channel>` when your client shows the invite. Each chat then appears as a `!…:localhost` channel when a message arrives (see the limitations above).
 
