@@ -174,10 +174,9 @@ EOF
     echo "╠══════════════════════════════════════════════════════════════╣"
     echo "║  Matrix registration token: ${REG_TOKEN}"
     echo "║                                                              ║"
-    echo "║  You need this to create your Matrix account in BitlBee:    ║"
-    echo "║    register --token=${REG_TOKEN} \\   ║"
-    echo "║             username password                                ║"
-    echo "║  (see README for full setup steps)                          ║"
+    echo "║  Create your Matrix account with:                            ║"
+    echo "║    docker exec <container> matrix-register <user> <password> ║"
+    echo "║  then connect your IRC client to port 6698 (see README)      ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo ""
 fi
@@ -204,6 +203,7 @@ if [ ! -f "${SSL_DIR}/bitlbee.pem" ]; then
 fi
 
 # Always (re-)write stunnel.conf so the path is correct even after volume moves.
+# 6697 → BitlBee, 6698 → matrix2051 (Matrix as an IRC network); both share the cert.
 cat > "${BITLBEE_DATA}/stunnel.conf" <<EOF
 foreground = yes
 syslog = no
@@ -212,7 +212,15 @@ syslog = no
 accept = 6697
 connect = 127.0.0.1:6667
 cert = ${SSL_DIR}/bitlbee.pem
+
+[matrix2051-tls]
+accept = 6698
+connect = 127.0.0.1:2051
+cert = ${SSL_DIR}/bitlbee.pem
 EOF
+
+# matrix2051's RELEASE_TMP (see s6-rc.d/matrix2051/run)
+mkdir -p "${BITLBEE_DATA}/matrix2051"
 
 # ── Step 4: register mautrix-meta appservice with conduwuit ──────────────────
 # conduwuit stores appservice registrations in its database — there is no config
@@ -228,15 +236,9 @@ ADMIN_PASS="$(cat "${CONDUWUIT_DIR}/init_admin_pass" 2>/dev/null || true)"
 
 _do_matrix_bootstrap() {
     local base="$1"
-    local reg_token="$2"
 
     # Register admin account (idempotent — ok if already exists)
-    local session
-    session=$(curl -sf -X POST "${base}/_matrix/client/v3/register" \
-        -H "Content-Type: application/json" -d '{}' | jq -r '.session // empty') || true
-    curl -sf -X POST "${base}/_matrix/client/v3/register" \
-        -H "Content-Type: application/json" \
-        -d "{\"username\":\"${ADMIN_USER}\",\"password\":\"${ADMIN_PASS}\",\"auth\":{\"type\":\"m.login.registration_token\",\"token\":\"${reg_token}\",\"session\":\"${session}\"}}" \
+    /usr/local/bin/matrix-register --no-bridge-room "${ADMIN_USER}" "${ADMIN_PASS}" "${base}" \
         > /dev/null 2>&1 || true
 
     # Login
@@ -295,8 +297,6 @@ _do_matrix_bootstrap() {
 
 _conduwuit_register_appservice() {
     local base="http://127.0.0.1:6167"
-    local reg_token
-    reg_token=$(grep 'registration_token' "${CONDUWUIT_DIR}/conduwuit.toml" | sed 's/.*= *"\(.*\)"/\1/')
 
     echo "[init] Starting conduwuit for appservice bootstrap..."
     /usr/local/bin/conduwuit --config "${CONDUWUIT_DIR}/conduwuit.toml" &
@@ -314,7 +314,7 @@ _conduwuit_register_appservice() {
         sleep 1
     done
 
-    _do_matrix_bootstrap "${base}" "${reg_token}"
+    _do_matrix_bootstrap "${base}"
     local bootstrap_exit=$?
 
     kill $conduwuit_pid 2>/dev/null || true

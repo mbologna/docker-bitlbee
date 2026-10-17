@@ -34,6 +34,7 @@ wait_healthy() {
 
 docker run -d --name bitlbee-test \
   -p 6697:6697 \
+  -p 6698:6698 \
   -e UID=1000 -e GID=1000 \
   -e MATRIX_REGISTRATION_TOKEN=ci-test-token \
   "$IMAGE"
@@ -95,6 +96,68 @@ if "purple" not in output.lower():
 PYEOF
 echo "IRC/TLS plugin check OK"
 
+echo "=== Verifying Matrix over IRC/TLS (matrix2051 on 6698) ==="
+timeout 10s docker exec bitlbee-test nc -zv localhost 6698 || exit 1
+echo "IRC TLS port 6698 OK"
+
+# matrix2051's plaintext port must only be reachable on loopback
+if docker exec bitlbee-test sh -c 'nc -z "$(hostname -i | cut -d" " -f1)" 2051'; then
+  echo "FAIL: matrix2051 plaintext port 2051 is reachable outside loopback"
+  docker logs bitlbee-test; docker rm -f bitlbee-test; exit 1
+fi
+echo "matrix2051 plaintext port is loopback-only"
+
+docker exec bitlbee-test matrix-register ci ci-pass \
+  || { echo "FAIL: matrix-register"; docker logs bitlbee-test; docker rm -f bitlbee-test; exit 1; }
+
+# SASL login as @ci:localhost on the built-in homeserver, then wait for the
+# bridge chat created by matrix-register to be joined: this exercises
+# stunnel -> matrix2051 -> conduwuit end to end.
+python3 - <<'PYEOF2'
+import base64, ssl, socket, time, sys
+
+ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+
+def lines_until(s, buf, pred, timeout):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if pred(buf.decode("utf-8", errors="replace")):
+            return buf, True
+        s.settimeout(max(0.1, deadline - time.time()))
+        try:
+            chunk = s.recv(4096)
+        except socket.timeout:
+            break
+        if not chunk:
+            break
+        buf += chunk
+    return buf, pred(buf.decode("utf-8", errors="replace"))
+
+auth = base64.b64encode(b"\0ci:localhost\0ci-pass")
+with socket.create_connection(("localhost", 6698), timeout=15) as sock:
+    with ctx.wrap_socket(sock) as s:
+        s.sendall(b"CAP LS 302\r\nNICK ci\r\n"
+                  b"USER ci 0 * :homeserver-url=http://127.0.0.1:6167\r\n"
+                  b"CAP REQ :sasl\r\nAUTHENTICATE PLAIN\r\n")
+        buf, ok = lines_until(s, b"", lambda o: "AUTHENTICATE +" in o, 15)
+        s.sendall(b"AUTHENTICATE " + auth + b"\r\nCAP END\r\n")
+        buf, ok = lines_until(s, buf, lambda o: " 903 " in o or " 904 " in o, 30)
+        if not (ok and " 903 " in buf.decode()):
+            print(buf.decode("utf-8", errors="replace"))
+            print("FAIL: SASL login to matrix2051 failed", file=sys.stderr)
+            sys.exit(1)
+        buf, ok = lines_until(s, buf, lambda o: " JOIN " in o, 60)
+
+output = buf.decode("utf-8", errors="replace")
+print(output)
+if not ok:
+    print("FAIL: matrix2051 did not join the bridge chat", file=sys.stderr)
+    sys.exit(1)
+PYEOF2
+echo "Matrix over IRC/TLS check OK"
+
 docker stop bitlbee-test && docker rm bitlbee-test
 
 echo "=== Restricted-capability run (mirrors k8s/deployment.yaml securityContext) ==="
@@ -113,6 +176,8 @@ wait_healthy bitlbee-test-restricted
 
 timeout 10s docker exec bitlbee-test-restricted nc -zv localhost 6697 || exit 1
 echo "IRC TLS port 6697 OK under restricted capabilities"
+timeout 10s docker exec bitlbee-test-restricted nc -zv localhost 6698 || exit 1
+echo "IRC TLS port 6698 OK under restricted capabilities"
 
 docker stop bitlbee-test-restricted && docker rm bitlbee-test-restricted
 

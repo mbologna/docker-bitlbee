@@ -5,13 +5,13 @@
 [![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
 [![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
 
-A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in: the container only listens on port **6697 (IRC over TLS)**; plaintext is never exposed.
+A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in: the container only listens on port **6697** (BitlBee) and port **6698** (Matrix), both IRC over TLS; plaintext is never exposed.
 
 ## Technical Features
 
 - 🏗️ **Multi-architecture support:** `linux/amd64`, `linux/arm64`
 - 🔒 **Security-hardened:** Non-root user, minimal capabilities, security contexts
-- 🔐 **TLS-only:** stunnel terminates TLS inside the container; BitlBee binds loopback-only
+- 🔐 **TLS-only:** stunnel terminates TLS inside the container; BitlBee and matrix2051 bind loopback-only
 - 📊 **Health checks:** Built-in monitoring with liveness/readiness probes
 - 📦 **SBOM generation:** Software Bill of Materials for supply chain security
 - 🔍 **Automated vulnerability scanning:** Trivy and Grype scans in CI/CD
@@ -24,12 +24,14 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 
 **Via Plugins:**
 - Discord ([purple-discord](https://github.com/EionRobb/purple-discord))
-- Facebook Messenger & Instagram DMs ([mautrix-meta](https://github.com/mautrix/meta) via built-in Matrix homeserver)
+- Facebook Messenger & Instagram DMs ([mautrix-meta](https://github.com/mautrix/meta) via built-in Matrix homeserver, reached on port 6698)
 - Google Chat ([purple-googlechat](https://github.com/EionRobb/purple-googlechat))
 - Mastodon ([bitlbee-mastodon](https://github.com/kensanata/bitlbee-mastodon))
 - Microsoft Teams ([purple-teams](https://github.com/EionRobb/purple-teams))
 - Telegram ([tdlib-purple](https://github.com/BenWiederhake/tdlib-purple))
 - WhatsApp ([purple-whatsmeow](https://github.com/hoehermann/purple-gowhatsapp))
+
+**Matrix:** any homeserver, through [matrix2051](https://github.com/progval/matrix2051) on port 6698 (see [Matrix](#matrix)). This is a second IRC network next to BitlBee, not a BitlBee account.
 
 > **Note:** Twitter/X's built-in BitlBee support requires a paid API key since free-tier access was removed in 2023.
 
@@ -65,6 +67,7 @@ docker run -d \
   --name bitlbee \
   --user $(id -u):$(id -g) \
   -p 6697:6697 \
+  -p 6698:6698 \
   -v bitlbee-data:/var/lib/bitlbee \
   mbologna/docker-bitlbee:latest
 ```
@@ -86,7 +89,7 @@ cp .env.example .env
 docker-compose up -d
 
 # Access BitlBee (TLS)
-# IRC over TLS: localhost:6697
+# IRC over TLS: localhost:6697 (BitlBee), localhost:6698 (Matrix)
 ```
 
 #### Docker Compose Configuration
@@ -99,6 +102,7 @@ Create a `.env` file:
 UID=1000                        # User ID for file permissions
 GID=1000                        # Group ID for file permissions
 BITLBEE_PORT=6697               # BitlBee TLS port (default: 6697)
+MATRIX_PORT=6698                # matrix2051 TLS port (default: 6698)
 TZ=UTC                          # Timezone
 MATRIX_REGISTRATION_TOKEN=      # Optional: set a fixed Matrix registration token
                                  # (auto-generated on first run if left empty)
@@ -119,10 +123,10 @@ kubectl apply -f k8s/
 kubectl get pods -n bitlbee
 
 # Access from within cluster (TLS only)
-# bitlbee.bitlbee.svc.cluster.local:6697
+# bitlbee.bitlbee.svc.cluster.local:6697 (BitlBee), :6698 (Matrix)
 
 # Port forward for external access
-kubectl port-forward -n bitlbee svc/bitlbee 6697:6697
+kubectl port-forward -n bitlbee svc/bitlbee 6697:6697 6698:6698
 ```
 
 #### Kubernetes Configuration
@@ -133,7 +137,7 @@ Managed by PersistentVolumeClaim (default: 128Mi, configurable in `k8s/pvc.yaml`
 
 ##### Exposing Services
 
-Edit `k8s/ingress.yaml` (uncomment the relevant block) to choose between NodePort and LoadBalancer. Both examples expose port **6697** only.
+Edit `k8s/ingress.yaml` (uncomment the relevant block) to choose between NodePort and LoadBalancer. Both examples expose ports **6697** (BitlBee) and **6698** (Matrix).
 
 **NodePort** (for bare-metal clusters):
 ```yaml
@@ -143,6 +147,9 @@ spec:
     - name: ircs
       port: 6697
       nodePort: 30697  # Choose 30000-32767
+    - name: ircs-matrix
+      port: 6698
+      nodePort: 30698
 ```
 
 **LoadBalancer** (for cloud providers):
@@ -152,6 +159,8 @@ spec:
   ports:
     - name: ircs
       port: 6697
+    - name: ircs-matrix
+      port: 6698
 ```
 
 ##### Resource Limits
@@ -219,44 +228,57 @@ account discord on
 save
 ```
 
+## Matrix
+
+BitlBee has no maintained Matrix plugin, so Matrix is served by [matrix2051](https://github.com/progval/matrix2051), a Matrix client that acts as an IRC server. It is a **second IRC network** in your client, on port **6698** (TLS), next to BitlBee on 6697. It reaches the container's built-in homeserver (needed for Facebook) and any other homeserver.
+
+matrix2051 logs in with SASL PLAIN. The SASL username is your Matrix ID without the leading `@` (`me:matrix.org`), and the password is your Matrix password. The IRC "real name" (GECOS) can carry the homeserver URL when it can't be discovered.
+
+Limitations:
+
+- **No end-to-end encryption.** Encrypted rooms are unreadable, which on most public homeservers includes direct messages.
+- Direct chats show up as channels with random names.
+- Anyone who can reach port 6698 can use it to log into any Matrix homeserver (with valid credentials). Only expose it where you would expose BitlBee.
+
+### Example: external Matrix account
+
+In WeeChat (adapt for your client):
+
+```
+/server add matrix example.org/6698 -tls
+/set irc.server.matrix.sasl_mechanism plain
+/set irc.server.matrix.sasl_username me:matrix.org
+/set irc.server.matrix.sasl_password <your-matrix-password>
+/connect matrix
+```
+
+Leave the real name empty; the homeserver is found through `.well-known`. Join rooms with `/join #room:matrix.org`.
+
 ### Example: Facebook Messenger (with 2FA)
 
-Facebook Messenger is bridged via an embedded [Matrix](https://matrix.org/) homeserver ([conduwuit](https://github.com/girlbossceo/conduwuit)) and a [mautrix-meta](https://github.com/mautrix/meta) bridge. Both run inside the same container; no extra services needed.
+Facebook Messenger is bridged by [mautrix-meta](https://github.com/mautrix/meta) on the container's built-in Matrix homeserver ([conduwuit](https://github.com/girlbossceo/conduwuit)). Both run inside the container; no extra services needed. The homeserver is private: it listens on loopback only and doesn't federate.
 
-**On first container start**, look for the Matrix registration token in the logs:
+1. Create your account on the built-in homeserver (one-time):
+   ```bash
+   docker exec bitlbee matrix-register me 'my-password'
+   ```
+   This also opens a chat with the bridge bot, `@facebookbot:localhost`.
 
-```
-docker logs bitlbee | grep "registration token"
-# or set MATRIX_REGISTRATION_TOKEN in your .env to choose your own
-```
-
-**In your IRC client:**
-
-1. Register a local Matrix account (one-time setup):
+2. Connect to port 6698 as `me:localhost`, with the real name set to the built-in homeserver's address:
    ```
-   register_matrix <your-matrix-username> <password> <registration-token>
-   ```
-   Or, using the raw Matrix account add:
-   ```
-   account add matrix <username>@localhost <password> http://localhost:6167
-   ```
-   When BitlBee asks for a registration token, paste the one from the logs.
-
-2. Enable the account:
-   ```
-   account matrix on
+   /server add fb example.org/6698 -tls
+   /set irc.server.fb.sasl_mechanism plain
+   /set irc.server.fb.sasl_username me:localhost
+   /set irc.server.fb.sasl_password my-password
+   /set irc.server.fb.realname homeserver-url=http://127.0.0.1:6167
+   /connect fb
    ```
 
-3. Start a conversation with the bridge bot to link your Facebook account:
-   ```
-   /msg @facebookbot:localhost login
-   ```
-   The bot will guide you through a QR code or link-based login. This works with 2FA and does not use the old (broken) mobile API.
+3. In the "Facebook bridge" channel, say `login`. The bot guides you through a QR code or link-based login. This works with 2FA and does not use the old (broken) mobile API.
 
-4. Once linked, your Facebook contacts appear as channels/users in BitlBee. Save:
-   ```
-   save
-   ```
+Once linked, each Facebook chat appears as a channel on this network.
+
+`matrix-register` reads the registration token from the container. The token is also printed in the logs on first start, or can be fixed with `MATRIX_REGISTRATION_TOKEN` in `.env`.
 
 ## Star History
 

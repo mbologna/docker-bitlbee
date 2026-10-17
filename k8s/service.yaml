@@ -14,6 +14,10 @@ spec:
       protocol: TCP
       port: 6697
       targetPort: ircs
+    - name: ircs-matrix
+      protocol: TCP
+      port: 6698
+      targetPort: ircs-matrix
   selector:
     app.kubernetes.io/name: bitlbee
     app.kubernetes.io/component: gateway
