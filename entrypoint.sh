@@ -41,8 +41,9 @@ if [ ! -f "${MAUTRIX_DIR}/registration.yaml" ]; then
     set -o pipefail
 
     # Appservice registration — registered into conduwuit's database at startup (Step 4).
-    # The regex defines which Matrix user IDs the bridge is allowed to create
-    # (facebook_* users on this homeserver).
+    # The regex defines which Matrix user IDs the bridge owns: the facebook_*
+    # puppets and the bot itself. conduwuit only forwards events that match the
+    # namespace, so without the bot in it, invites to the bot never arrive.
     cat > "${MAUTRIX_DIR}/registration.yaml" <<EOF
 id: facebook-bridge
 url: http://127.0.0.1:29319
@@ -53,7 +54,7 @@ rate_limited: false
 namespaces:
   users:
     - exclusive: true
-      regex: '@facebook_.+:localhost'
+      regex: '@facebook(bot|_.+):localhost'
   aliases: []
   rooms: []
 de.sorunome.msc2409.push_ephemeral: true
@@ -129,6 +130,16 @@ logging:
 EOF
 
     echo "[init] mautrix-meta config written to ${MAUTRIX_DIR}/config.yaml"
+fi
+
+# Registrations written before the bot was in the namespace: fix the file and
+# have Step 4 register it again (conduwuit replaces a registration by id).
+REREGISTER_APPSERVICE=0
+if grep -q "regex: '@facebook_.+:localhost'" "${MAUTRIX_DIR}/registration.yaml"; then
+    echo "[init] Adding the bridge bot to the appservice namespace..."
+    sed -i "s/regex: '@facebook_.+:localhost'/regex: '@facebook(bot|_.+):localhost'/" \
+        "${MAUTRIX_DIR}/registration.yaml"
+    REREGISTER_APPSERVICE=1
 fi
 
 # ── Step 2: conduwuit config ──────────────────────────────────────────────────
@@ -266,7 +277,8 @@ _do_matrix_bootstrap() {
     local msgs
     msgs=$(curl -sf "${base}/_matrix/client/v3/rooms/${room_id}/messages?dir=b&limit=3" \
         -H "Authorization: Bearer ${token}")
-    if echo "$msgs" | jq -r '.chunk[].content.body' 2>/dev/null | grep -q "facebook-bridge"; then
+    if [ "${REREGISTER_APPSERVICE}" = 0 ] &&
+        echo "$msgs" | jq -r '.chunk[].content.body' 2>/dev/null | grep -q "facebook-bridge"; then
         echo "[init] Appservice already registered — skipping."
         return 0
     fi
@@ -314,8 +326,11 @@ _conduwuit_register_appservice() {
         sleep 1
     done
 
-    _do_matrix_bootstrap "${base}"
-    local bootstrap_exit=$?
+    # Capture the failure instead of letting set -e exit here: the temporary
+    # conduwuit must be stopped either way, or it keeps the database lock and
+    # the supervised conduwuit can't start.
+    local bootstrap_exit=0
+    _do_matrix_bootstrap "${base}" || bootstrap_exit=$?
 
     kill $conduwuit_pid 2>/dev/null || true
     # Give conduwuit a short grace period for WAL flush, then SIGKILL.

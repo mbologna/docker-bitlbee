@@ -41,6 +41,16 @@ docker run -d --name bitlbee-test \
 
 wait_healthy bitlbee-test
 
+# The healthcheck only probes ports; a failed first-run init (e.g. the
+# mautrix-meta appservice never registered with conduwuit) leaves them open.
+# (Logs captured first: grep -q closing the pipe early would trip pipefail.)
+init_logs=$(docker logs bitlbee-test 2>&1)
+if ! grep -q '10-init.sh exited 0' <<<"$init_logs"; then
+  echo "FAIL: first-run init did not succeed"
+  docker logs bitlbee-test; docker rm -f bitlbee-test; exit 1
+fi
+echo "First-run init OK"
+
 timeout 10s docker exec bitlbee-test nc -zv localhost 6697 || exit 1
 echo "IRC TLS port 6697 OK"
 
@@ -111,8 +121,8 @@ docker exec bitlbee-test matrix-register ci ci-pass \
   || { echo "FAIL: matrix-register"; docker logs bitlbee-test; docker rm -f bitlbee-test; exit 1; }
 
 # SASL login as @ci:localhost on the built-in homeserver, then wait for the
-# bridge chat created by matrix-register to be joined: this exercises
-# stunnel -> matrix2051 -> conduwuit end to end.
+# bridge chat created by matrix-register to be listed with the bridge bot in
+# it: this exercises stunnel -> matrix2051 -> conduwuit -> mautrix-meta.
 python3 - <<'PYEOF2'
 import base64, ssl, socket, time, sys
 
@@ -148,12 +158,14 @@ with socket.create_connection(("localhost", 6698), timeout=15) as sock:
             print(buf.decode("utf-8", errors="replace"))
             print("FAIL: SASL login to matrix2051 failed", file=sys.stderr)
             sys.exit(1)
-        buf, ok = lines_until(s, buf, lambda o: " JOIN " in o, 60)
+        buf, ok = lines_until(
+            s, buf,
+            lambda o: "JOIN :#facebook-ci:localhost" in o and "facebookbot" in o, 60)
 
 output = buf.decode("utf-8", errors="replace")
 print(output)
 if not ok:
-    print("FAIL: matrix2051 did not join the bridge chat", file=sys.stderr)
+    print("FAIL: bridge chat not listed, or the bridge bot is not in it", file=sys.stderr)
     sys.exit(1)
 PYEOF2
 echo "Matrix over IRC/TLS check OK"

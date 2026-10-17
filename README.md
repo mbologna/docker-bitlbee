@@ -237,7 +237,7 @@ matrix2051 logs in with SASL PLAIN. The SASL username is your Matrix ID without 
 Limitations:
 
 - **No end-to-end encryption.** Encrypted rooms are unreadable, which on most public homeservers includes direct messages.
-- Direct chats show up as channels with random names.
+- Rooms without an alias (direct chats, and every bridged Facebook chat) show up as channels named after the room ID, like `!AbCdEf:localhost`. matrix2051 doesn't list them when you connect, only when a message arrives.
 - Anyone who can reach port 6698 can use it to log into any Matrix homeserver (with valid credentials). Only expose it where you would expose BitlBee.
 
 ### Example: external Matrix account
@@ -262,7 +262,7 @@ Facebook Messenger is bridged by [mautrix-meta](https://github.com/mautrix/meta)
    ```bash
    docker exec bitlbee matrix-register me 'my-password'
    ```
-   This also opens a chat with the bridge bot, `@facebookbot:localhost`.
+   This also opens a chat with the bridge bot, `@facebookbot:localhost`, as the channel `#facebook-me:localhost`.
 
 2. Connect to port 6698 as `me:localhost`, with the real name set to the built-in homeserver's address:
    ```
@@ -274,9 +274,9 @@ Facebook Messenger is bridged by [mautrix-meta](https://github.com/mautrix/meta)
    /connect fb
    ```
 
-3. In the "Facebook bridge" channel, say `login`. The bot guides you through a QR code or link-based login. This works with 2FA and does not use the old (broken) mobile API.
+3. In `#facebook-me:localhost`, say `login`. The bot guides you through a QR code or link-based login. This works with 2FA and does not use the old (broken) mobile API.
 
-Once linked, each Facebook chat appears as a channel on this network.
+Once linked, the bridge invites you to a Matrix room for each Facebook chat. Accept with `/join <channel>` when your client shows the invite. Each chat then appears as a `!…:localhost` channel when a message arrives (see the limitations above).
 
 `matrix-register` reads the registration token from the container. The token is also printed in the logs on first start, or can be fixed with `MATRIX_REGISTRATION_TOKEN` in `.env`.
 
