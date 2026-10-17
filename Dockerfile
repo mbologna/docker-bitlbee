@@ -39,10 +39,10 @@ ARG PURPLE_GOOGLECHAT_VERSION=master
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
 ARG PURPLE_WHATSMEOW_VERSION=v1.26.0
-# purple-whatsmeow builds against whatsmeow "latest"; pin the library to the last
-# version its code compiles with. whatsmeow 4b7a1ef (2026-10-06) changed the
-# Blocklist API. Revisit when purple-whatsmeow releases a fix.
-ARG WHATSMEOW_VERSION=v0.0.0-20261005195255-6bb48c0f1ff0
+# purple-whatsmeow builds against whatsmeow "latest", whose Blocklist API has since
+# changed. Pin the library to the version v1.26.0 was released with (its committed
+# go.mod). Bump together with PURPLE_WHATSMEOW_VERSION.
+ARG WHATSMEOW_VERSION=v0.0.0-20260909164725-b25a56d63729
 
 ############################
 # tdlib-builder stage (isolated so TDLib cache is not busted by unrelated version bumps)
