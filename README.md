@@ -54,6 +54,15 @@ docker inspect -f '{{json .Config.Labels}}' mbologna/docker-bitlbee:<tag>
 Components built from `master` (tdlib-purple and the EionRobb plugins) are
 labelled `master`; their exact commit is whatever `master` was at build time.
 
+### Upgrading from conduwuit to tuwunel
+
+Images up to `4.x` shipped the Matrix homeserver conduwuit 0.4.6, which is no longer maintained. Later images ship its successor, [tuwunel](https://github.com/matrix-construct/tuwunel). The first start on an existing volume:
+
+- copies the database to `/var/lib/bitlbee/conduwuit/db.conduwuit-0.4.6-backup`, then
+- migrates the database in place. Accounts, rooms and the Facebook bridge are kept.
+
+The migration is one-way: older images can't open the migrated database. To go back, stop the container and restore the copy. Once everything works, delete the copy to free the space. Paths and the config file keep the `conduwuit` name, as upstream recommends.
+
 ## Quick Start
 
 ### Docker
@@ -263,7 +272,7 @@ On matrix.org:
 
 ### Example: Facebook Messenger (with 2FA)
 
-Facebook Messenger is bridged by [mautrix-meta](https://github.com/mautrix/meta) on the container's built-in Matrix homeserver ([conduwuit](https://github.com/girlbossceo/conduwuit)). Both run inside the container; no extra services needed. The homeserver is private: it listens on loopback only and doesn't federate.
+Facebook Messenger is bridged by [mautrix-meta](https://github.com/mautrix/meta) on the container's built-in Matrix homeserver ([tuwunel](https://github.com/matrix-construct/tuwunel)). Both run inside the container; no extra services needed. The homeserver is private: it listens on loopback only and doesn't federate.
 
 1. Create your account on the built-in homeserver (one-time):
    ```bash

@@ -1,0 +1,34 @@
+diff --git a/lib/matrix_client/poller.ex b/lib/matrix_client/poller.ex
+index 985e8af..b05430c 100644
+--- a/lib/matrix_client/poller.ex
++++ b/lib/matrix_client/poller.ex
+@@ -189,6 +189,21 @@ defp well_formed_event?(is_backlog, event, irc_state, write) do
+     end
+   end
+ 
++  # "state" in a sync response is the state *before* the timeline. When a room's
++  # whole history fits in the timeline, spec-compliant servers (e.g. Synapse,
++  # tuwunel) put its state events (alias, name, members) there instead. Read
++  # them too on the initial sync, or such a room is never announced on connect
++  # and its member list is incomplete. Backlog handlers send nothing, so seeing
++  # these events again in the timeline pass below is harmless.
++  defp backlog_timeline_state(false, _room_event), do: []
++
++  defp backlog_timeline_state(true, room_event) do
++    room_event
++    |> Map.get("timeline", %{})
++    |> Map.get("events", [])
++    |> Enum.filter(fn event -> Map.has_key?(event, "state_key") end)
++  end
++
+   def handle_joined_room(sup_pid, is_backlog, handled_event_ids, room_id, write, room_event) do
+     state = M51.IrcConn.Supervisor.matrix_state(sup_pid)
+     irc_state = M51.IrcConn.Supervisor.state(sup_pid)
+@@ -197,6 +212,7 @@ def handle_joined_room(sup_pid, is_backlog, handled_event_ids, room_id, write, r
+       room_event
+       |> Map.get("state", %{})
+       |> Map.get("events", [])
++      |> Kernel.++(backlog_timeline_state(is_backlog, room_event))
+       |> Enum.filter(fn event -> well_formed_event?(is_backlog, event, irc_state, write) end)
+       # oldest first
+       |> Enum.map(fn event ->

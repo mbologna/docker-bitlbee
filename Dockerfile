@@ -15,9 +15,10 @@ ARG TDLIB_PURPLE_VERSION=master
 ARG BITLBEE_VERSION=3.6
 # renovate: datasource=github-releases depName=just-containers/s6-overlay
 ARG S6_OVERLAY_VERSION=3.2.3.0
-# renovate: datasource=github-releases depName=girlbossceo/conduwuit
-# Check https://github.com/girlbossceo/conduwuit/releases for the latest version
-ARG CONDUWUIT_VERSION=0.4.6
+# Matrix homeserver. tuwunel is the successor of conduwuit (archived at 0.4.6) and
+# migrates a conduwuit database in place on first start (one-way).
+# renovate: datasource=github-releases depName=matrix-construct/tuwunel
+ARG TUWUNEL_VERSION=1.9.4
 # renovate: datasource=github-releases depName=mautrix/meta
 # Check https://github.com/mautrix/meta/releases for the latest version
 ARG MAUTRIX_META_VERSION=0.2609.0
@@ -38,6 +39,10 @@ ARG PURPLE_GOOGLECHAT_VERSION=master
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
 ARG PURPLE_WHATSMEOW_VERSION=v1.26.0
+# purple-whatsmeow builds against whatsmeow "latest", whose Blocklist API has since
+# changed. Pin the library to the version v1.26.0 was released with (its committed
+# go.mod). Bump together with PURPLE_WHATSMEOW_VERSION.
+ARG WHATSMEOW_VERSION=v0.0.0-20260909164725-b25a56d63729
 
 ############################
 # tdlib-builder stage (isolated so TDLib cache is not busted by unrelated version bumps)
@@ -128,6 +133,12 @@ RUN git clone --depth=1 --single-branch --branch "${MATRIX2051_VERSION}" \
       https://github.com/progval/matrix2051.git
 
 WORKDIR /build/matrix2051
+# Fix carried until it's upstream: on connect, also read state events from the
+# sync timeline, where spec-compliant servers such as tuwunel put a small room's
+# alias and members. git apply fails the build if upstream changes that code.
+COPY patches/matrix2051-*.patch /build/patches/
+RUN git apply /build/patches/matrix2051-*.patch
+
 # Listen on 127.0.0.1 only (upstream binds every interface): stunnel is the
 # only way in, so plaintext IRC is never exposed, same as BitlBee. Guarded so
 # an upstream change fails the build instead of silently exposing the port.
@@ -145,13 +156,14 @@ FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:4241005cb2c47ea9
 
 ARG BITLBEE_VERSION
 ARG S6_OVERLAY_VERSION
-ARG CONDUWUIT_VERSION
+ARG TUWUNEL_VERSION
 ARG MAUTRIX_META_VERSION
 ARG PURPLE_DISCORD_VERSION
 ARG PURPLE_TEAMS_VERSION
 ARG PURPLE_GOOGLECHAT_VERSION
 ARG BITLBEE_MASTODON_VERSION
 ARG PURPLE_WHATSMEOW_VERSION
+ARG WHATSMEOW_VERSION
 
 ARG TARGETARCH
 ARG BUILDPLATFORM
@@ -180,7 +192,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # Cross-compilation toolchain (used when building for arm64 on amd64 runners)
     gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
     # Utilities
-    netcat-traditional curl ca-certificates golang gettext sudo
+    netcat-traditional curl ca-certificates golang gettext sudo zstd
 
 # Fetch all sources in parallel where possible
 RUN --mount=type=cache,target=/root/.cache/go-build \
@@ -206,15 +218,17 @@ RUN LDFLAGS="-lgcrypt" ./configure \
     make -j"$(nproc)" && \
     make install install-bin install-doc install-dev install-etc install-plugin-otr
 
-# Download conduwuit (Matrix homeserver) and mautrix-meta (Facebook bridge) — statically linked, no extra deps
+# Download tuwunel (Matrix homeserver) and mautrix-meta (Facebook bridge).
+# tuwunel ships zstd-compressed static binaries; x86_64-v1 runs on any x86_64 CPU.
 RUN case "${TARGETARCH}" in \
-      amd64) CONDUWUIT_ARCH="x86_64"  ; MM_ARCH="amd64" ;; \
-      arm64) CONDUWUIT_ARCH="aarch64" ; MM_ARCH="arm64"  ;; \
+      amd64) TUWUNEL_ARCH="x86_64-v1" ; MM_ARCH="amd64" ;; \
+      arm64) TUWUNEL_ARCH="aarch64-v8" ; MM_ARCH="arm64"  ;; \
       *) echo "Unsupported arch: ${TARGETARCH}"; exit 1   ;; \
     esac && \
-    curl -fsSL -o /usr/local/bin/conduwuit \
-      "https://github.com/girlbossceo/conduwuit/releases/download/v${CONDUWUIT_VERSION}/static-${CONDUWUIT_ARCH}-unknown-linux-musl" && \
-    chmod +x /usr/local/bin/conduwuit && \
+    curl -fsSL \
+      "https://github.com/matrix-construct/tuwunel/releases/download/v${TUWUNEL_VERSION}/v${TUWUNEL_VERSION}-release-all-${TUWUNEL_ARCH}-linux-gnu-tuwunel.zst" \
+      | zstd -d -o /usr/local/bin/tuwunel && \
+    chmod +x /usr/local/bin/tuwunel && \
     curl -fsSL -o /usr/local/bin/mautrix-meta \
       "https://github.com/mautrix/meta/releases/download/v${MAUTRIX_META_VERSION}/mautrix-meta-${MM_ARCH}" && \
     chmod +x /usr/local/bin/mautrix-meta
@@ -241,6 +255,10 @@ RUN ./autogen.sh && \
     make install
 
 WORKDIR /build
+# Pin whatsmeow (see WHATSMEOW_VERSION). Guarded so a changed go.mod.in fails the build.
+RUN grep -q '^\s*go.mau.fi/whatsmeow latest$' purple-whatsmeow/go.mod.in && \
+    sed -i "s|^\(\s*go.mau.fi/whatsmeow\) latest$|\1 ${WHATSMEOW_VERSION}|" purple-whatsmeow/go.mod.in && \
+    grep -q "go.mau.fi/whatsmeow ${WHATSMEOW_VERSION}" purple-whatsmeow/go.mod.in
 RUN cmake -S purple-whatsmeow -B whatsapp-build -DCMAKE_BUILD_TYPE=Release && \
     cmake --build whatsapp-build && \
     cmake --install whatsapp-build --strip
@@ -321,7 +339,9 @@ RUN ARCH_DIR=$(find /usr/lib -maxdepth 1 -type d -name '*-linux-gnu' | head -n1)
     echo "/usr/local/lib" > /etc/ld.so.conf.d/usr-local.conf && \
     ldconfig && \
     # Verify plugins were copied
-    ls -la "${ARCH_DIR}/purple-2/" || echo "Warning: No plugins found"
+    ls -la "${ARCH_DIR}/purple-2/" || echo "Warning: No plugins found" && \
+    # Sanity check: fail the build if the downloaded tuwunel binary can't run here
+    tuwunel --version
 
 # Create bitlbee user and directories with proper permissions
 RUN groupadd -r -g 1000 bitlbee && \
@@ -361,7 +381,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
 ARG TDLIB_PURPLE_VERSION
 ARG BITLBEE_VERSION
 ARG S6_OVERLAY_VERSION
-ARG CONDUWUIT_VERSION
+ARG TUWUNEL_VERSION
 ARG MAUTRIX_META_VERSION
 ARG MATRIX2051_VERSION
 ARG PURPLE_DISCORD_VERSION
@@ -376,7 +396,7 @@ LABEL org.opencontainers.image.title="BitlBee container" \
       io.github.mbologna.docker-bitlbee.tdlib-purple.version="${TDLIB_PURPLE_VERSION}" \
       io.github.mbologna.docker-bitlbee.bitlbee.version="${BITLBEE_VERSION}" \
       io.github.mbologna.docker-bitlbee.s6-overlay.version="${S6_OVERLAY_VERSION}" \
-      io.github.mbologna.docker-bitlbee.conduwuit.version="${CONDUWUIT_VERSION}" \
+      io.github.mbologna.docker-bitlbee.tuwunel.version="${TUWUNEL_VERSION}" \
       io.github.mbologna.docker-bitlbee.mautrix-meta.version="${MAUTRIX_META_VERSION}" \
       io.github.mbologna.docker-bitlbee.matrix2051.version="${MATRIX2051_VERSION}" \
       io.github.mbologna.docker-bitlbee.purple-discord.version="${PURPLE_DISCORD_VERSION}" \

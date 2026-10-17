@@ -1,17 +1,21 @@
 #!/bin/bash
-# entrypoint.sh — first-run initialization for conduwuit + mautrix-meta + bitlbee
+# entrypoint.sh — first-run initialization for tuwunel + mautrix-meta + bitlbee
 #
 # Installed as /etc/cont-init.d/10-init.sh; s6-overlay runs it before starting
 # any services.  On first run this script generates:
 #   1. A mautrix-meta appservice registration file (registration.yaml) with random tokens
-#   2. A mautrix-meta config.yaml pointing to the local conduwuit homeserver
-#   3. A conduwuit.toml for the local Matrix homeserver
-#   4. Bootstraps conduwuit to register the mautrix-meta appservice in its database
+#   2. A mautrix-meta config.yaml pointing to the local Matrix homeserver
+#   3. A conduwuit.toml for the local Matrix homeserver (tuwunel)
+#   4. Bootstraps tuwunel to register the mautrix-meta appservice in its database
 #
 # On subsequent runs it skips straight to exit 0 (s6 then starts the services).
 #
+# tuwunel is the successor of conduwuit, which this image shipped until 0.4.6.
+# It reads conduwuit's config and migrates its database in place, so the paths
+# below keep the conduwuit name, as upstream recommends.
+#
 # State lives in the persistent volume at /var/lib/bitlbee:
-#   /var/lib/bitlbee/conduwuit/   — conduwuit database + config
+#   /var/lib/bitlbee/conduwuit/   — homeserver database + config
 #   /var/lib/bitlbee/mautrix-meta/ — bridge database + config + registration
 
 # s6-overlay runs cont-init scripts as root; drop to bitlbee for all file writes.
@@ -26,7 +30,7 @@ MAUTRIX_DIR="${BITLBEE_DATA}/mautrix-meta"
 mkdir -p "${CONDUWUIT_DIR}/db" "${MAUTRIX_DIR}"
 
 # ── Step 1: mautrix-meta registration & config ────────────────────────────────
-# The appservice registration file tells conduwuit which Matrix user namespace
+# The appservice registration file tells the homeserver which Matrix user namespace
 # the bridge owns and which shared secret tokens to use for auth.
 # We generate it once; rotating tokens later requires restarting both services.
 if [ ! -f "${MAUTRIX_DIR}/registration.yaml" ]; then
@@ -40,9 +44,9 @@ if [ ! -f "${MAUTRIX_DIR}/registration.yaml" ]; then
     HS_TOKEN=$(tr -dc 'a-f0-9' < /dev/urandom | head -c 64)
     set -o pipefail
 
-    # Appservice registration — registered into conduwuit's database at startup (Step 4).
+    # Appservice registration — registered into the homeserver's database at startup (Step 4).
     # The regex defines which Matrix user IDs the bridge owns: the facebook_*
-    # puppets and the bot itself. conduwuit only forwards events that match the
+    # puppets and the bot itself. The homeserver only forwards events that match the
     # namespace, so without the bot in it, invites to the bot never arrive.
     cat > "${MAUTRIX_DIR}/registration.yaml" <<EOF
 id: facebook-bridge
@@ -61,7 +65,7 @@ de.sorunome.msc2409.push_ephemeral: true
 receive_ephemeral: true
 EOF
 
-    # mautrix-meta config — connects the bridge to the local conduwuit instance.
+    # mautrix-meta config — connects the bridge to the local homeserver.
     # bridge.permissions controls who may use the bridge:
     #   '*': relay   → anyone can receive messages but can't log in
     #   'localhost': user → accounts on this server can link their Facebook account
@@ -133,7 +137,7 @@ EOF
 fi
 
 # Registrations written before the bot was in the namespace: fix the file and
-# have Step 4 register it again (conduwuit replaces a registration by id).
+# have Step 4 register it again (the homeserver replaces a registration by id).
 REREGISTER_APPSERVICE=0
 if grep -q "regex: '@facebook_.+:localhost'" "${MAUTRIX_DIR}/registration.yaml"; then
     echo "[init] Adding the bridge bot to the appservice namespace..."
@@ -142,13 +146,13 @@ if grep -q "regex: '@facebook_.+:localhost'" "${MAUTRIX_DIR}/registration.yaml";
     REREGISTER_APPSERVICE=1
 fi
 
-# ── Step 2: conduwuit config ──────────────────────────────────────────────────
-# conduwuit is a lightweight Matrix homeserver (fork of Conduit, written in Rust).
+# ── Step 2: homeserver config ─────────────────────────────────────────────────
+# tuwunel is a lightweight Matrix homeserver (conduwuit's successor, written in Rust).
 # It runs on loopback only — no external Matrix federation, no TLS needed.
 # allow_registration + registration_token means only people with the token can
 # create accounts. Print the token clearly so the user can find it in the logs.
 if [ ! -f "${CONDUWUIT_DIR}/conduwuit.toml" ]; then
-    echo "[init] Generating conduwuit config..."
+    echo "[init] Generating homeserver config..."
 
     # Allow overriding the registration token via environment variable.
     # pipefail off for the same SIGPIPE reason as the token generation above.
@@ -176,7 +180,7 @@ allow_federation = false
 allow_registration = true
 registration_token = "${REG_TOKEN}"
 
-log = "warn,conduwuit=info"
+log = "warn,tuwunel=info"
 EOF
 
     echo ""
@@ -233,9 +237,9 @@ EOF
 # matrix2051's RELEASE_TMP (see s6-rc.d/matrix2051/run)
 mkdir -p "${BITLBEE_DATA}/matrix2051"
 
-# ── Step 4: register mautrix-meta appservice with conduwuit ──────────────────
-# conduwuit stores appservice registrations in its database — there is no config
-# file option for this. We bootstrap it by starting conduwuit briefly, creating
+# ── Step 4: register mautrix-meta appservice with tuwunel ────────────────────
+# The registration is kept in the homeserver's database (conduwuit had no config
+# file option for this). We bootstrap it by starting tuwunel briefly, creating
 # an internal admin account, and sending the !admin appservices register command
 # to the admin room via the Matrix API. The admin account is only used for this
 # purpose and is never exposed externally.
@@ -266,84 +270,110 @@ _do_matrix_bootstrap() {
         -H "Authorization: Bearer ${token}" | jq -r '.joined_rooms[0]')
     [ -z "$room_id" ] && { echo "[init] No admin room found" >&2; return 1; }
 
-    # Check if appservice is already registered
-    local txn
-    txn=$(date +%s%N)
-    curl -sf -X PUT "${base}/_matrix/client/v3/rooms/${room_id}/send/m.room.message/${txn}" \
-        -H "Authorization: Bearer ${token}" \
-        -H "Content-Type: application/json" \
-        -d '{"msgtype":"m.text","body":"!admin appservices list-registered"}' > /dev/null
-    sleep 1
-    local msgs
-    msgs=$(curl -sf "${base}/_matrix/client/v3/rooms/${room_id}/messages?dir=b&limit=3" \
-        -H "Authorization: Bearer ${token}")
-    if [ "${REREGISTER_APPSERVICE}" = 0 ] &&
-        echo "$msgs" | jq -r '.chunk[].content.body' 2>/dev/null | grep -q "facebook-bridge"; then
-        echo "[init] Appservice already registered — skipping."
-        return 0
+    local reply
+    reply=$(_admin_command "${base}" "${token}" "${room_id}" '!admin appservices list')
+    if ! echo "${reply}" | grep -q '^Appservices'; then
+        echo "[init] Unexpected reply to appservices list: ${reply}" >&2
+        return 1
+    fi
+    if echo "${reply}" | grep -qw 'facebook-bridge'; then
+        if [ "${REREGISTER_APPSERVICE}" = 0 ]; then
+            echo "[init] Appservice already registered — skipping."
+            return 0
+        fi
+        # The homeserver refuses to register an existing id: drop the old entry first.
+        _admin_command "${base}" "${token}" "${room_id}" \
+            '!admin appservices unregister facebook-bridge' > /dev/null
     fi
 
-    # Register the appservice
-    local yaml_content
-    yaml_content=$(cat "${MAUTRIX_DIR}/registration.yaml")
-    # Build the message body carefully to preserve newlines in the YAML block
-    local msg_body
-    msg_body=$(printf '!admin appservices register\n```\n%s\n```' "${yaml_content}")
-    txn=$(( txn + 1 ))
-    curl -sf -X PUT "${base}/_matrix/client/v3/rooms/${room_id}/send/m.room.message/${txn}" \
-        -H "Authorization: Bearer ${token}" \
-        -H "Content-Type: application/json" \
-        --data-binary "$(jq -n --arg body "${msg_body}" '{"msgtype":"m.text","body":$body}')" \
-        > /dev/null
-    sleep 2
-
-    # Confirm registration
-    msgs=$(curl -sf "${base}/_matrix/client/v3/rooms/${room_id}/messages?dir=b&limit=3" \
-        -H "Authorization: Bearer ${token}")
-    local result
-    result=$(echo "$msgs" | jq -r '.chunk[] | select(.sender == "@conduit:localhost") | .content.body' | head -1)
-    echo "[init] ${result}"
-    echo "$result" | grep -qi "registered" && return 0
+    # Register the appservice. The YAML goes in a code block below the command.
+    reply=$(_admin_command "${base}" "${token}" "${room_id}" \
+        "$(printf '!admin appservices register\n```\n%s\n```' "$(cat "${MAUTRIX_DIR}/registration.yaml")")")
+    echo "[init] ${reply}"
+    echo "${reply}" | grep -qi "registered" && return 0
     return 1
 }
 
-_conduwuit_register_appservice() {
+# Sends an admin command to the admin room and prints the server's reply,
+# waiting up to 10s for it to arrive.
+_admin_command() {
+    local base="$1" token="$2" room_id="$3" body="$4"
+    local txn="init$(date +%s%N)"
+    curl -sf -X PUT "${base}/_matrix/client/v3/rooms/${room_id}/send/m.room.message/${txn}" \
+        -H "Authorization: Bearer ${token}" \
+        -H "Content-Type: application/json" \
+        --data-binary "$(jq -n --arg body "${body}" '{"msgtype":"m.text","body":$body}')" \
+        > /dev/null
+    local i newest
+    for i in $(seq 10); do
+        sleep 1
+        # The newest event is the reply once the server has answered our command.
+        newest=$(curl -sf "${base}/_matrix/client/v3/rooms/${room_id}/messages?dir=b&limit=1" \
+            -H "Authorization: Bearer ${token}")
+        if [ "$(echo "${newest}" | jq -r '.chunk[0].sender')" = "@conduit:localhost" ]; then
+            echo "${newest}" | jq -r '.chunk[0].content.body'
+            return 0
+        fi
+    done
+    return 1
+}
+
+# conduwuit -> tuwunel migration. The first tuwunel start converts a conduwuit
+# database in place, and older images can't open it afterwards. Keep a copy
+# first, and allow that start time to finish: killing tuwunel mid-migration could
+# damage the database. The marker is written once tuwunel answers.
+MIGRATION_MARKER="${CONDUWUIT_DIR}/.migrated-to-tuwunel"
+MIGRATING=0
+if [ ! -f "${MIGRATION_MARKER}" ] && [ -f "${CONDUWUIT_DIR}/db/CURRENT" ]; then
+    MIGRATING=1
+    BACKUP_DIR="${CONDUWUIT_DIR}/db.conduwuit-0.4.6-backup"
+    echo "[init] Existing conduwuit database: migrating to tuwunel (one-way)."
+    echo "[init] Keeping a copy in ${BACKUP_DIR}; delete it once everything works."
+    rm -rf "${BACKUP_DIR}"
+    cp -a "${CONDUWUIT_DIR}/db" "${BACKUP_DIR}"
+fi
+
+_tuwunel_register_appservice() {
     local base="http://127.0.0.1:6167"
+    local start_timeout=30
+    [ "${MIGRATING}" = 1 ] && start_timeout=600
 
-    echo "[init] Starting conduwuit for appservice bootstrap..."
-    /usr/local/bin/conduwuit --config "${CONDUWUIT_DIR}/conduwuit.toml" &
-    local conduwuit_pid=$!
+    echo "[init] Starting tuwunel for appservice bootstrap..."
+    /usr/local/bin/tuwunel --config "${CONDUWUIT_DIR}/conduwuit.toml" &
+    local tuwunel_pid=$!
 
-    # Wait for conduwuit to accept connections (up to 30s)
+    # Wait for tuwunel to accept connections
     local i=0
     until curl -sf "${base}/_matrix/client/versions" > /dev/null 2>&1; do
         i=$((i + 1))
-        if [ $i -ge 30 ]; then
-            echo "[init] ERROR: conduwuit did not start in time" >&2
-            kill $conduwuit_pid 2>/dev/null || true
+        if [ $i -ge "${start_timeout}" ] || ! kill -0 "$tuwunel_pid" 2>/dev/null; then
+            echo "[init] ERROR: tuwunel did not start in time" >&2
+            kill $tuwunel_pid 2>/dev/null || true
             return 1
         fi
         sleep 1
     done
+    # Serving requests means the database is in tuwunel's format (migrated, or new).
+    touch "${MIGRATION_MARKER}"
 
     # Capture the failure instead of letting set -e exit here: the temporary
-    # conduwuit must be stopped either way, or it keeps the database lock and
-    # the supervised conduwuit can't start.
+    # tuwunel must be stopped either way, or it keeps the database lock and
+    # the supervised tuwunel can't start.
     local bootstrap_exit=0
     _do_matrix_bootstrap "${base}" || bootstrap_exit=$?
 
-    kill $conduwuit_pid 2>/dev/null || true
-    # Give conduwuit a short grace period for WAL flush, then SIGKILL.
+    kill $tuwunel_pid 2>/dev/null || true
+    # Give tuwunel a short grace period for WAL flush, then SIGKILL.
     # Graceful RocksDB shutdown can take 10+ minutes on constrained hardware
     # (full memtable flush + compaction). SIGKILL is safe here: the appservice
     # registration was already confirmed above, and RocksDB's WAL guarantees
     # data integrity on the next start.
     local deadline=$((SECONDS + 30))
-    while kill -0 "$conduwuit_pid" 2>/dev/null && [ $SECONDS -lt $deadline ]; do
+    while kill -0 "$tuwunel_pid" 2>/dev/null && [ $SECONDS -lt $deadline ]; do
         sleep 1
     done
-    kill -KILL "$conduwuit_pid" 2>/dev/null || true
-    wait $conduwuit_pid 2>/dev/null || true
+    kill -KILL "$tuwunel_pid" 2>/dev/null || true
+    wait $tuwunel_pid 2>/dev/null || true
     return $bootstrap_exit
 }
 
@@ -356,9 +386,9 @@ if [ -z "${ADMIN_PASS}" ]; then
     chmod 600 "${CONDUWUIT_DIR}/init_admin_pass"
 fi
 
-_conduwuit_register_appservice
+_tuwunel_register_appservice
 
 # ── Step 5: hand off to s6-overlay ───────────────────────────────────────────
-# s6-overlay will now start conduwuit → mautrix-meta → bitlbee → stunnel
+# s6-overlay will now start tuwunel → mautrix-meta → bitlbee → stunnel
 # in dependency order and restart any process that crashes.
 exit 0

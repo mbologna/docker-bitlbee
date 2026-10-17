@@ -213,9 +213,10 @@ backups/
 core
 core.*
 
-# Patch files
+# Patch files (except the ones the Dockerfile applies)
 *.patch
 *.diff
+!patches/*.patch
 
 # Local configuration
 .local/

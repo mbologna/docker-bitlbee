@@ -10,5 +10,5 @@ metadata:
 data:
   TZ: "UTC"
   # Optional: set a fixed Matrix registration token used to create accounts on the
-  # built-in conduwuit homeserver. Auto-generated on first run if left empty.
+  # built-in Matrix homeserver (tuwunel). Auto-generated on first run if left empty.
   # MATRIX_REGISTRATION_TOKEN: "change-me"
