@@ -55,19 +55,27 @@ spec:
 
           resources:
             limits:
-              # Container runs 5 processes: conduwuit + mautrix-meta + matrix2051 + bitlbee + stunnel
+              # Container runs 5 processes: tuwunel + mautrix-meta + matrix2051 + bitlbee + stunnel
               memory: 1Gi
               cpu: 1500m
             requests:
               memory: 256Mi
               cpu: 200m
 
+          # Liveness only starts once this succeeds. Up to 10 minutes, so first-run init
+          # and the one-time conduwuit -> tuwunel database migration aren't killed halfway.
+          startupProbe:
+            exec:
+              command:
+                - /usr/local/bin/healthcheck.sh
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 60
+
           livenessProbe:
             exec:
               command:
                 - /usr/local/bin/healthcheck.sh
-            # Allow time for conduwuit + mautrix-meta + stunnel to initialize before BitlBee starts
-            initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
@@ -76,7 +84,6 @@ spec:
             exec:
               command:
                 - /usr/local/bin/healthcheck.sh
-            initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

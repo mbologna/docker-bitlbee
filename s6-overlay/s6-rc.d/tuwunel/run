@@ -1,0 +1,4 @@
+#!/bin/sh
+# tuwunel (conduwuit's successor) keeps conduwuit's config file and data paths.
+exec s6-setuidgid bitlbee /usr/local/bin/tuwunel \
+  --config /var/lib/bitlbee/conduwuit/conduwuit.toml

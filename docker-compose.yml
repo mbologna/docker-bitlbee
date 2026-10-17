@@ -29,7 +29,7 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      # Allow extra time for conduwuit + mautrix-meta first-run init
+      # Allow extra time for tuwunel + mautrix-meta first-run init
       start_period: 30s
 
     logging:

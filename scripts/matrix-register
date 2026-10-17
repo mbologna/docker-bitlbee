@@ -1,5 +1,5 @@
 #!/bin/bash
-# matrix-register — create an account on the built-in Matrix homeserver (conduwuit)
+# matrix-register — create an account on the built-in Matrix homeserver (tuwunel)
 #
 # Usage: matrix-register [--no-bridge-room] <username> <password> [homeserver-url]
 #

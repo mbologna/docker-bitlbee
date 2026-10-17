@@ -42,7 +42,7 @@ docker run -d --name bitlbee-test \
 wait_healthy bitlbee-test
 
 # The healthcheck only probes ports; a failed first-run init (e.g. the
-# mautrix-meta appservice never registered with conduwuit) leaves them open.
+# mautrix-meta appservice never registered with the homeserver) leaves them open.
 # (Logs captured first: grep -q closing the pipe early would trip pipefail.)
 init_logs=$(docker logs bitlbee-test 2>&1)
 if ! grep -q '10-init.sh exited 0' <<<"$init_logs"; then
@@ -122,7 +122,7 @@ docker exec bitlbee-test matrix-register ci ci-pass \
 
 # SASL login as @ci:localhost on the built-in homeserver, then wait for the
 # bridge chat created by matrix-register to be listed with the bridge bot in
-# it: this exercises stunnel -> matrix2051 -> conduwuit -> mautrix-meta.
+# it: this exercises stunnel -> matrix2051 -> tuwunel -> mautrix-meta.
 python3 - <<'PYEOF2'
 import base64, ssl, socket, time, sys
 
