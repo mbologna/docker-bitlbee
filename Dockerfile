@@ -39,6 +39,10 @@ ARG PURPLE_GOOGLECHAT_VERSION=master
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
 ARG PURPLE_WHATSMEOW_VERSION=v1.26.0
+# purple-whatsmeow builds against whatsmeow "latest"; pin the library to the last
+# version its code compiles with. whatsmeow 4b7a1ef (2026-10-06) changed the
+# Blocklist API. Revisit when purple-whatsmeow releases a fix.
+ARG WHATSMEOW_VERSION=v0.0.0-20261005195255-6bb48c0f1ff0
 
 ############################
 # tdlib-builder stage (isolated so TDLib cache is not busted by unrelated version bumps)
@@ -159,6 +163,7 @@ ARG PURPLE_TEAMS_VERSION
 ARG PURPLE_GOOGLECHAT_VERSION
 ARG BITLBEE_MASTODON_VERSION
 ARG PURPLE_WHATSMEOW_VERSION
+ARG WHATSMEOW_VERSION
 
 ARG TARGETARCH
 ARG BUILDPLATFORM
@@ -250,6 +255,10 @@ RUN ./autogen.sh && \
     make install
 
 WORKDIR /build
+# Pin whatsmeow (see WHATSMEOW_VERSION). Guarded so a changed go.mod.in fails the build.
+RUN grep -q '^\s*go.mau.fi/whatsmeow latest$' purple-whatsmeow/go.mod.in && \
+    sed -i "s|^\(\s*go.mau.fi/whatsmeow\) latest$|\1 ${WHATSMEOW_VERSION}|" purple-whatsmeow/go.mod.in && \
+    grep -q "go.mau.fi/whatsmeow ${WHATSMEOW_VERSION}" purple-whatsmeow/go.mod.in
 RUN cmake -S purple-whatsmeow -B whatsapp-build -DCMAKE_BUILD_TYPE=Release && \
     cmake --build whatsapp-build && \
     cmake --install whatsapp-build --strip
