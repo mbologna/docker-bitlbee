@@ -51,8 +51,11 @@ The bundled component versions are recorded as image labels:
 docker inspect -f '{{json .Config.Labels}}' mbologna/docker-bitlbee:<tag>
 ```
 
-Components built from `master` (tdlib-purple and the EionRobb plugins) are
-labelled `master`; their exact commit is whatever `master` was at build time.
+Components with no usable release tags (tdlib-purple, matrix2051 and the
+EionRobb plugins) are built from a branch pinned to a commit, and labelled
+with that commit's SHA. Renovate proposes each new branch commit as a pull
+request that merges only once the image builds and passes CI, so every
+upstream change shows up as a commit here before it reaches a release.
 
 ### Upgrading from conduwuit to tuwunel
 

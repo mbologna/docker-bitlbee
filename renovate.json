@@ -9,6 +9,14 @@
       "matchStrings": [
         "#\\s*renovate:\\s*datasource=(?<datasource>[^\\s]+)\\s+depName=(?<depName>[^\\s]+)\\s*\\n(?:#[^\\n]*\\n)?ARG [A-Z_]+=(?<currentValue>[^\\s]+)"
       ]
+    },
+    {
+      "description": "Track ARGs pinned to a branch's commit SHA: currentValue names the branch, the git-refs datasource proposes its new HEAD as a digest update",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>git-refs)\\s+depName=(?<depName>[^\\s]+)\\s+packageName=(?<packageName>[^\\s]+)\\s+currentValue=(?<currentValue>[^\\s]+)\\s*\\n(?:#[^\\n]*\\n)?ARG [A-Z0-9_]+=(?<currentDigest>[0-9a-f]{40})\\s"
+      ]
     }
   ]
 }

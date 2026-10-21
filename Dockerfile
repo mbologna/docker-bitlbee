@@ -10,8 +10,14 @@
 # The image's own version (git tag vX.Y.Z) is independent of all of these:
 # see "Versioning" in README.md.
 
-# tdlib-purple has no recent release tags; always build from master
-ARG TDLIB_PURPLE_VERSION=master
+# Components with no usable release tags are built from a branch, pinned to a
+# full commit SHA. An unpinned branch HEAD would reach the weekly release
+# unreviewed, and infra deploys this image. Renovate (git-refs) proposes the
+# branch's new HEAD as a digest update; the comment's currentValue names the
+# branch it follows. git-refs gives no commit dates, so no release-age gate
+# applies: the digest PR automerges once CI builds and tests the image.
+# renovate: datasource=git-refs depName=BenWiederhake/tdlib-purple packageName=https://github.com/BenWiederhake/tdlib-purple currentValue=master
+ARG TDLIB_PURPLE_VERSION=43e6cc2f14ccd08171b1515f6216f4bbf84eed80
 ARG BITLBEE_VERSION=3.6
 # renovate: datasource=github-releases depName=just-containers/s6-overlay
 ARG S6_OVERLAY_VERSION=3.2.3.0
@@ -23,18 +29,19 @@ ARG TUWUNEL_VERSION=1.9.4
 # Check https://github.com/mautrix/meta/releases for the latest version
 ARG MAUTRIX_META_VERSION=0.2609.0
 # matrix2051 (Matrix client exposed as an IRC server) has no release tags;
-# always build from main
-ARG MATRIX2051_VERSION=main
+# built from main, pinned as above
+# renovate: datasource=git-refs depName=progval/matrix2051 packageName=https://github.com/progval/matrix2051 currentValue=main
+ARG MATRIX2051_VERSION=ef7f1ea7f6a036b0cb34f36fd41d4bdde5d71a7b
 
 # Plugin versions — tracked by Renovate where release tags are available.
 # EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
-# so they stay on "master" (always latest) and Renovate does not track them.
-# renovate: datasource=github-tags depName=EionRobb/purple-discord
-ARG PURPLE_DISCORD_VERSION=master
-# renovate: datasource=github-tags depName=EionRobb/purple-teams
-ARG PURPLE_TEAMS_VERSION=master
-# renovate: datasource=github-tags depName=EionRobb/purple-googlechat
-ARG PURPLE_GOOGLECHAT_VERSION=master
+# so they are built from master, pinned to a commit SHA as above.
+# renovate: datasource=git-refs depName=EionRobb/purple-discord packageName=https://github.com/EionRobb/purple-discord currentValue=master
+ARG PURPLE_DISCORD_VERSION=b5cbd6221695b8a61a8529064a6b23d5812bf639
+# renovate: datasource=git-refs depName=EionRobb/purple-teams packageName=https://github.com/EionRobb/purple-teams currentValue=master
+ARG PURPLE_TEAMS_VERSION=f7eb519b9968ed7844ff59319bff5c1859c46851
+# renovate: datasource=git-refs depName=EionRobb/purple-googlechat packageName=https://github.com/EionRobb/purple-googlechat currentValue=master
+ARG PURPLE_GOOGLECHAT_VERSION=7bb81bc4c40a2da6069d897f2c24d272a08fcd43
 # renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
@@ -65,9 +72,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       libglib2.0-dev libpurple-dev libssl-dev zlib1g-dev ca-certificates \
       gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
-RUN git clone --depth=1 --single-branch --branch "${TDLIB_PURPLE_VERSION}" \
-      --recurse-submodules --shallow-submodules \
-      https://github.com/BenWiederhake/tdlib-purple.git
+# Fetch the pinned commit by SHA (git clone --branch takes no SHA)
+RUN git init -q tdlib-purple && \
+    git -C tdlib-purple fetch -q --depth=1 \
+      https://github.com/BenWiederhake/tdlib-purple.git "${TDLIB_PURPLE_VERSION}" && \
+    git -C tdlib-purple -c advice.detachedHead=false checkout -q FETCH_HEAD && \
+    git -C tdlib-purple submodule update -q --init --recursive --depth=1
 
 # Phase 1 — build TDLib code generators on the HOST arch (only needed for cross-compilation).
 # prepare_cross_compiling requires DCMAKE_CROSSCOMPILING=True so cmake generates the target;
@@ -129,8 +139,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
       elixir erlang-nox erlang-dev ca-certificates
 
-RUN git clone --depth=1 --single-branch --branch "${MATRIX2051_VERSION}" \
-      https://github.com/progval/matrix2051.git
+RUN git init -q matrix2051 && \
+    git -C matrix2051 fetch -q --depth=1 \
+      https://github.com/progval/matrix2051.git "${MATRIX2051_VERSION}" && \
+    git -C matrix2051 -c advice.detachedHead=false checkout -q FETCH_HEAD
 
 WORKDIR /build/matrix2051
 # Fix carried until it's upstream: on connect, also read state events from the
@@ -194,12 +206,18 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # Utilities
     netcat-traditional curl ca-certificates golang gettext sudo zstd
 
-# Fetch all sources in parallel where possible
+# Fetch all sources in parallel where possible. fetch_commit DIR URL SHA
+# checks out one pinned commit (git clone --branch takes no SHA).
 RUN --mount=type=cache,target=/root/.cache/go-build \
+    fetch_commit() { \
+      git init -q "$1" && \
+      git -C "$1" fetch -q --depth=1 "$2" "$3" && \
+      git -C "$1" -c advice.detachedHead=false checkout -q FETCH_HEAD; \
+    }; \
     curl -fsSL -o bitlbee.tar.gz https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz & \
-    git clone --depth=1 --single-branch --branch ${PURPLE_DISCORD_VERSION} https://github.com/EionRobb/purple-discord.git & \
-    git clone --depth=1 --single-branch --branch ${PURPLE_TEAMS_VERSION} https://github.com/EionRobb/purple-teams.git & \
-    git clone --depth=1 --single-branch --branch ${PURPLE_GOOGLECHAT_VERSION} https://github.com/EionRobb/purple-googlechat.git & \
+    fetch_commit purple-discord https://github.com/EionRobb/purple-discord.git "${PURPLE_DISCORD_VERSION}" & \
+    fetch_commit purple-teams https://github.com/EionRobb/purple-teams.git "${PURPLE_TEAMS_VERSION}" & \
+    fetch_commit purple-googlechat https://github.com/EionRobb/purple-googlechat.git "${PURPLE_GOOGLECHAT_VERSION}" & \
     git clone --depth=1 --single-branch --branch ${BITLBEE_MASTODON_VERSION} https://github.com/kensanata/bitlbee-mastodon.git & \
     git clone --depth=1 --single-branch --recurse-submodules --shallow-submodules \
       --branch ${PURPLE_WHATSMEOW_VERSION} https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow & \
