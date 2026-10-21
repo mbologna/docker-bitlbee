@@ -214,14 +214,17 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
       git -C "$1" fetch -q --depth=1 "$2" "$3" && \
       git -C "$1" -c advice.detachedHead=false checkout -q FETCH_HEAD; \
     }; \
-    curl -fsSL -o bitlbee.tar.gz https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz & \
-    fetch_commit purple-discord https://github.com/EionRobb/purple-discord.git "${PURPLE_DISCORD_VERSION}" & \
-    fetch_commit purple-teams https://github.com/EionRobb/purple-teams.git "${PURPLE_TEAMS_VERSION}" & \
-    fetch_commit purple-googlechat https://github.com/EionRobb/purple-googlechat.git "${PURPLE_GOOGLECHAT_VERSION}" & \
-    git clone --depth=1 --single-branch --branch ${BITLBEE_MASTODON_VERSION} https://github.com/kensanata/bitlbee-mastodon.git & \
+    pids=; \
+    curl -fsSL -o bitlbee.tar.gz https://get.bitlbee.org/src/bitlbee-${BITLBEE_VERSION}.tar.gz & pids="$pids $!"; \
+    fetch_commit purple-discord https://github.com/EionRobb/purple-discord.git "${PURPLE_DISCORD_VERSION}" & pids="$pids $!"; \
+    fetch_commit purple-teams https://github.com/EionRobb/purple-teams.git "${PURPLE_TEAMS_VERSION}" & pids="$pids $!"; \
+    fetch_commit purple-googlechat https://github.com/EionRobb/purple-googlechat.git "${PURPLE_GOOGLECHAT_VERSION}" & pids="$pids $!"; \
+    git clone --depth=1 --single-branch --branch ${BITLBEE_MASTODON_VERSION} https://github.com/kensanata/bitlbee-mastodon.git & pids="$pids $!"; \
     git clone --depth=1 --single-branch --recurse-submodules --shallow-submodules \
-      --branch ${PURPLE_WHATSMEOW_VERSION} https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow & \
-    wait
+      --branch ${PURPLE_WHATSMEOW_VERSION} https://github.com/hoehermann/purple-gowhatsapp.git purple-whatsmeow & pids="$pids $!"; \
+    # A bare wait returns 0 whatever the jobs did: check each, so a pinned SHA
+    # that vanished (upstream force-push) fails here, not later in make.
+    for p in $pids; do wait "$p" || exit 1; done
 
 # Build BitlBee
 RUN tar xf bitlbee.tar.gz
