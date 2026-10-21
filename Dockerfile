@@ -54,7 +54,7 @@ ARG WHATSMEOW_VERSION=v0.0.0-20260909164725-b25a56d63729
 ############################
 # tdlib-builder stage (isolated so TDLib cache is not busted by unrelated version bumps)
 ############################
-FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:4241005cb2c47ea99750627baeb06714f6fde7f01a69ce451d85f8dccf0f5691 AS tdlib-builder
+FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:6e8ba98ab91672906401f95bda24888b4c791fff806fc3da979a227cd72a7dbf AS tdlib-builder
 
 ARG TDLIB_PURPLE_VERSION
 ARG TARGETARCH
@@ -124,7 +124,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; 
 # Built for the TARGET platform (no --platform=$BUILDPLATFORM): the release
 # bundles ERTS and OTP's crypto NIF, which are arch-specific. CI builds each
 # arch on a native runner; a local cross build runs this stage under QEMU.
-FROM buildpack-deps:stable-scm@sha256:4241005cb2c47ea99750627baeb06714f6fde7f01a69ce451d85f8dccf0f5691 AS matrix2051-builder
+FROM buildpack-deps:stable-scm@sha256:6e8ba98ab91672906401f95bda24888b4c791fff806fc3da979a227cd72a7dbf AS matrix2051-builder
 
 ARG MATRIX2051_VERSION
 
@@ -164,7 +164,7 @@ RUN grep -q '^      :inet6,$' lib/irc_server.ex && \
 ############################
 # Builder stage
 ############################
-FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:4241005cb2c47ea99750627baeb06714f6fde7f01a69ce451d85f8dccf0f5691 AS builder
+FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:6e8ba98ab91672906401f95bda24888b4c791fff806fc3da979a227cd72a7dbf AS builder
 
 ARG BITLBEE_VERSION
 ARG S6_OVERLAY_VERSION
