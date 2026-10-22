@@ -6,7 +6,7 @@
       "description": "Plugins pinned to a branch commit (git-refs): a new upstream commit has no release date, so no age gate can hold it, and it would automerge as soon as CI passed. Review each one by hand. An empty commitMessageSuffix keeps the preset's [automerge] tag and stability note off the PR.",
       "matchDatasources": ["git-refs"],
       "automerge": false,
-      "commitMessageSuffix": "[manual review]"
+      "labels": ["dependencies", "manual-review"]
     }
   ],
   "customManagers": [
