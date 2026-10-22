@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   docker:
-    uses: mbologna/.github/.github/workflows/docker-ci.yml@cebe9d284cbd32e96ada3b8b37e0537a4ab3ddaf # main
+    uses: mbologna/.github/.github/workflows/docker-ci.yml@165eeebec04bda4e28f6caefb0744831d2f008a7 # main
     with:
       image_name: docker-bitlbee
       yamllint_paths: docker-compose.yml .github/workflows/
@@ -33,7 +33,7 @@ jobs:
 
   cache-cleanup:
     if: github.event_name == 'schedule'
-    uses: mbologna/.github/.github/workflows/cache-cleanup.yml@cebe9d284cbd32e96ada3b8b37e0537a4ab3ddaf # main
+    uses: mbologna/.github/.github/workflows/cache-cleanup.yml@165eeebec04bda4e28f6caefb0744831d2f008a7 # main
     with:
       max_age_days: 7
     permissions:
@@ -47,7 +47,7 @@ jobs:
       contents: write
       actions: write
     needs: [docker]
-    uses: mbologna/.github/.github/workflows/auto-release.yml@cebe9d284cbd32e96ada3b8b37e0537a4ab3ddaf # main
+    uses: mbologna/.github/.github/workflows/auto-release.yml@165eeebec04bda4e28f6caefb0744831d2f008a7 # main
     with:
       strategy: docker
       image: docker.io/mbologna/docker-bitlbee
