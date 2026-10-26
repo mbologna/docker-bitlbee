@@ -1,0 +1,15 @@
+name: PR title
+
+# The squash-merge commit takes the PR title as its subject, and auto-release
+# reads that subject: the title must be a Conventional Commit.
+
+"on":
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-title:
+    uses: mbologna/.github/.github/workflows/pr-title.yml@e0ca3700bd9629e5d400755fbb8bb6e3740d9bf2 # main
