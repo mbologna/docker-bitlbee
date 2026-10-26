@@ -37,7 +37,7 @@ ARG MATRIX2051_VERSION=ef7f1ea7f6a036b0cb34f36fd41d4bdde5d71a7b
 # EionRobb plugins (discord, teams, googlechat) only publish nightly-HASH tags, not semver,
 # so they are built from master, pinned to a commit SHA as above.
 # renovate: datasource=git-refs depName=EionRobb/purple-discord packageName=https://github.com/EionRobb/purple-discord currentValue=master
-ARG PURPLE_DISCORD_VERSION=b5cbd6221695b8a61a8529064a6b23d5812bf639
+ARG PURPLE_DISCORD_VERSION=ef5993d5677978c08df845601b385f42a23132a9
 # renovate: datasource=git-refs depName=EionRobb/purple-teams packageName=https://github.com/EionRobb/purple-teams currentValue=master
 ARG PURPLE_TEAMS_VERSION=f7eb519b9968ed7844ff59319bff5c1859c46851
 # renovate: datasource=git-refs depName=EionRobb/purple-googlechat packageName=https://github.com/EionRobb/purple-googlechat currentValue=master
