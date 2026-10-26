@@ -40,9 +40,15 @@ jobs:
       actions: write
 
   auto-release:
-    if: github.event_name == 'schedule'
-    # contents: push the tag; actions: dispatch this workflow on it, since a
-    # tag pushed with GITHUB_TOKEN triggers no run of its own.
+    # Monday's schedule releases; a manual run on the default branch releases
+    # at once. The tag build auto-release dispatches runs on the tag ref, so it
+    # does not release again.
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
+    # contents: push the tag and create the Release; actions: dispatch this
+    # workflow on it, since a tag pushed with GITHUB_TOKEN triggers no run.
     permissions:
       contents: write
       actions: write
