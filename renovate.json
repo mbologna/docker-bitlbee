@@ -3,10 +3,12 @@
   "extends": ["github>mbologna/.github//renovate-config.json"],
   "packageRules": [
     {
-      "description": "Plugins pinned to a branch commit (git-refs): a new upstream commit has no release date, so no age gate can hold it, and it would automerge as soon as CI passed. Review each one by hand. The manual-review label keeps the preset's automerge note off the PR.",
+      "description": "Plugins pinned to a branch commit (git-refs): a new upstream commit has no release date, so no age gate can hold it, and it would automerge as soon as CI passed. Review them by hand, all in one PR a week (opened before 09:00 UTC on Monday, like the preset's weekly groups) instead of one per upstream commit. The manual-review label keeps the preset's automerge note off the PR.",
       "matchDatasources": ["git-refs"],
       "automerge": false,
-      "labels": ["dependencies", "manual-review"]
+      "labels": ["dependencies", "manual-review"],
+      "groupName": "plugin branch commits",
+      "schedule": ["before 9am on monday"]
     }
   ],
   "customManagers": [

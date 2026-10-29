@@ -15,7 +15,7 @@
 # unreviewed, and infra deploys this image. Renovate (git-refs) proposes the
 # branch's new HEAD as a digest update; the comment's currentValue names the
 # branch it follows. git-refs gives no commit dates, so no release-age gate
-# applies: the digest PR automerges once CI builds and tests the image.
+# applies: these updates are reviewed by hand, in one weekly PR (renovate.json).
 # renovate: datasource=git-refs depName=BenWiederhake/tdlib-purple packageName=https://github.com/BenWiederhake/tdlib-purple currentValue=master
 ARG TDLIB_PURPLE_VERSION=43e6cc2f14ccd08171b1515f6216f4bbf84eed80
 ARG BITLBEE_VERSION=3.6
