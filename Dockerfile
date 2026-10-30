@@ -27,7 +27,7 @@ ARG S6_OVERLAY_VERSION=3.2.3.0
 ARG TUWUNEL_VERSION=1.9.4
 # renovate: datasource=github-releases depName=mautrix/meta
 # Check https://github.com/mautrix/meta/releases for the latest version
-ARG MAUTRIX_META_VERSION=0.2609.0
+ARG MAUTRIX_META_VERSION=0.2610.0
 # matrix2051 (Matrix client exposed as an IRC server) has no release tags;
 # built from main, pinned as above
 # renovate: datasource=git-refs depName=progval/matrix2051 packageName=https://github.com/progval/matrix2051 currentValue=main
