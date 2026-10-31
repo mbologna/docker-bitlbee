@@ -58,6 +58,6 @@ jobs:
     needs: [docker]
     uses: mbologna/.github/.github/workflows/auto-release.yml@082fa2446f47703a5a2687d24712bc01df254310 # main
     with:
-      strategy: docker
+      strategy: conventional
       image: docker.io/mbologna/docker-bitlbee
     secrets: inherit
