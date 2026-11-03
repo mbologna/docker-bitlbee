@@ -45,7 +45,7 @@ ARG PURPLE_GOOGLECHAT_VERSION=fbd99caead1220900bc439957a4c5638ae143005
 # renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
-ARG PURPLE_WHATSMEOW_VERSION=v1.26.0
+ARG PURPLE_WHATSMEOW_VERSION=v1.27.0
 # purple-whatsmeow builds against whatsmeow "latest", whose Blocklist API has since
 # changed. Pin the library to the version v1.26.0 was released with (its committed
 # go.mod). Bump together with PURPLE_WHATSMEOW_VERSION.
