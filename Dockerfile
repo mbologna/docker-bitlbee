@@ -54,7 +54,7 @@ ARG WHATSMEOW_VERSION=v0.0.0-20260909164725-b25a56d63729
 ############################
 # tdlib-builder stage (isolated so TDLib cache is not busted by unrelated version bumps)
 ############################
-FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:31eaaaed467f87ed2254deb433fc7037cac04916772e2e1e55d5a742ce5d6527 AS tdlib-builder
+FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:d0c09fddebc1466b9b4914b2cffab8a1395b8c0b907727b7c79ec2189c4a24b8 AS tdlib-builder
 
 ARG TDLIB_PURPLE_VERSION
 ARG TARGETARCH
@@ -124,7 +124,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ] && [ "${BUILDPLATFORM}" = "linux/amd64" ]; 
 # Built for the TARGET platform (no --platform=$BUILDPLATFORM): the release
 # bundles ERTS and OTP's crypto NIF, which are arch-specific. CI builds each
 # arch on a native runner; a local cross build runs this stage under QEMU.
-FROM buildpack-deps:stable-scm@sha256:31eaaaed467f87ed2254deb433fc7037cac04916772e2e1e55d5a742ce5d6527 AS matrix2051-builder
+FROM buildpack-deps:stable-scm@sha256:d0c09fddebc1466b9b4914b2cffab8a1395b8c0b907727b7c79ec2189c4a24b8 AS matrix2051-builder
 
 ARG MATRIX2051_VERSION
 
@@ -164,7 +164,7 @@ RUN grep -q '^      :inet6,$' lib/irc_server.ex && \
 ############################
 # Builder stage
 ############################
-FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:31eaaaed467f87ed2254deb433fc7037cac04916772e2e1e55d5a742ce5d6527 AS builder
+FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:d0c09fddebc1466b9b4914b2cffab8a1395b8c0b907727b7c79ec2189c4a24b8 AS builder
 
 ARG BITLBEE_VERSION
 ARG S6_OVERLAY_VERSION
@@ -302,7 +302,7 @@ RUN case "${TARGETARCH}" in \
 ############################
 # Runtime stage
 ############################
-FROM debian:stable-slim@sha256:13e0a2e78aa0554ad5ff66e4e260c6dbcdff807eb1f39d43b9fb0288aae88b04
+FROM debian:stable-slim@sha256:fbfb4059d2127120aa05b6e6064523d2102552f0cf0026ddf0701c12f1f8f3e0
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
