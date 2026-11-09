@@ -39,9 +39,9 @@ ARG MATRIX2051_VERSION=ef7f1ea7f6a036b0cb34f36fd41d4bdde5d71a7b
 # renovate: datasource=git-refs depName=EionRobb/purple-discord packageName=https://github.com/EionRobb/purple-discord currentValue=master
 ARG PURPLE_DISCORD_VERSION=ef5993d5677978c08df845601b385f42a23132a9
 # renovate: datasource=git-refs depName=EionRobb/purple-teams packageName=https://github.com/EionRobb/purple-teams currentValue=master
-ARG PURPLE_TEAMS_VERSION=07795b6ab57a1db7dc1fb00d956d558a18da0988
+ARG PURPLE_TEAMS_VERSION=76d8b3a58886954feaec7c456750abd146121dd3
 # renovate: datasource=git-refs depName=EionRobb/purple-googlechat packageName=https://github.com/EionRobb/purple-googlechat currentValue=master
-ARG PURPLE_GOOGLECHAT_VERSION=fbd99caead1220900bc439957a4c5638ae143005
+ARG PURPLE_GOOGLECHAT_VERSION=1ae6e98f2d6650731435f4296bf99df4bb7354cb
 # renovate: datasource=github-tags depName=kensanata/bitlbee-mastodon
 ARG BITLBEE_MASTODON_VERSION=v1.4.5
 # renovate: datasource=github-releases depName=hoehermann/purple-gowhatsapp
