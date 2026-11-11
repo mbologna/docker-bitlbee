@@ -101,6 +101,10 @@ spec:
                 # permitted" and the bitlbee service never starts.
                 - SETUID
                 - SETGID
+                # s6-supervise runs as root but the services as uid 1000, and
+                # signalling another uid needs KILL: without it a stop's SIGTERM
+                # never reaches them and the pod is SIGKILLed after its grace period.
+                - KILL
 
       volumes:
         - name: data
