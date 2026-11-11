@@ -399,7 +399,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
 # Bundled component versions, readable with:
 #   docker inspect -f '{{json .Config.Labels}}' mbologna/bitlbee:<tag>
 # Declared here, at the end, so a version bump doesn't invalidate the layers above.
-# The label keys keep the image's former name, docker-bitlbee: scripts read them.
 ARG TDLIB_PURPLE_VERSION
 ARG BITLBEE_VERSION
 ARG S6_OVERLAY_VERSION
@@ -415,17 +414,17 @@ LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
       org.opencontainers.image.url="https://github.com/mbologna/bitlbee-container" \
       org.opencontainers.image.licenses="MIT" \
-      io.github.mbologna.docker-bitlbee.tdlib-purple.version="${TDLIB_PURPLE_VERSION}" \
-      io.github.mbologna.docker-bitlbee.bitlbee.version="${BITLBEE_VERSION}" \
-      io.github.mbologna.docker-bitlbee.s6-overlay.version="${S6_OVERLAY_VERSION}" \
-      io.github.mbologna.docker-bitlbee.tuwunel.version="${TUWUNEL_VERSION}" \
-      io.github.mbologna.docker-bitlbee.mautrix-meta.version="${MAUTRIX_META_VERSION}" \
-      io.github.mbologna.docker-bitlbee.matrix2051.version="${MATRIX2051_VERSION}" \
-      io.github.mbologna.docker-bitlbee.purple-discord.version="${PURPLE_DISCORD_VERSION}" \
-      io.github.mbologna.docker-bitlbee.purple-teams.version="${PURPLE_TEAMS_VERSION}" \
-      io.github.mbologna.docker-bitlbee.purple-googlechat.version="${PURPLE_GOOGLECHAT_VERSION}" \
-      io.github.mbologna.docker-bitlbee.bitlbee-mastodon.version="${BITLBEE_MASTODON_VERSION}" \
-      io.github.mbologna.docker-bitlbee.purple-whatsmeow.version="${PURPLE_WHATSMEOW_VERSION}"
+      io.github.mbologna.bitlbee-container.tdlib-purple.version="${TDLIB_PURPLE_VERSION}" \
+      io.github.mbologna.bitlbee-container.bitlbee.version="${BITLBEE_VERSION}" \
+      io.github.mbologna.bitlbee-container.s6-overlay.version="${S6_OVERLAY_VERSION}" \
+      io.github.mbologna.bitlbee-container.tuwunel.version="${TUWUNEL_VERSION}" \
+      io.github.mbologna.bitlbee-container.mautrix-meta.version="${MAUTRIX_META_VERSION}" \
+      io.github.mbologna.bitlbee-container.matrix2051.version="${MATRIX2051_VERSION}" \
+      io.github.mbologna.bitlbee-container.purple-discord.version="${PURPLE_DISCORD_VERSION}" \
+      io.github.mbologna.bitlbee-container.purple-teams.version="${PURPLE_TEAMS_VERSION}" \
+      io.github.mbologna.bitlbee-container.purple-googlechat.version="${PURPLE_GOOGLECHAT_VERSION}" \
+      io.github.mbologna.bitlbee-container.bitlbee-mastodon.version="${BITLBEE_MASTODON_VERSION}" \
+      io.github.mbologna.bitlbee-container.purple-whatsmeow.version="${PURPLE_WHATSMEOW_VERSION}"
 
 # s6-overlay is PID 1 — handles init, zombie reaping, and service supervision
 ENTRYPOINT ["/init"]
