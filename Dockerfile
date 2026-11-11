@@ -397,8 +397,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
   CMD ["/usr/local/bin/healthcheck.sh"]
 
 # Bundled component versions, readable with:
-#   docker inspect -f '{{json .Config.Labels}}' mbologna/docker-bitlbee:<tag>
+#   docker inspect -f '{{json .Config.Labels}}' mbologna/bitlbee:<tag>
 # Declared here, at the end, so a version bump doesn't invalidate the layers above.
+# The label keys keep the image's former name, docker-bitlbee: scripts read them.
 ARG TDLIB_PURPLE_VERSION
 ARG BITLBEE_VERSION
 ARG S6_OVERLAY_VERSION
@@ -412,7 +413,7 @@ ARG BITLBEE_MASTODON_VERSION
 ARG PURPLE_WHATSMEOW_VERSION
 LABEL org.opencontainers.image.title="BitlBee container" \
       org.opencontainers.image.description="A containerized version of BitlBee with additional plugins." \
-      org.opencontainers.image.url="https://github.com/mbologna/docker-bitlbee" \
+      org.opencontainers.image.url="https://github.com/mbologna/bitlbee-container" \
       org.opencontainers.image.licenses="MIT" \
       io.github.mbologna.docker-bitlbee.tdlib-purple.version="${TDLIB_PURPLE_VERSION}" \
       io.github.mbologna.docker-bitlbee.bitlbee.version="${BITLBEE_VERSION}" \

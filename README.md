@@ -1,9 +1,15 @@
 # BitlBee Docker Container
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/mbologna/docker-bitlbee)](https://hub.docker.com/r/mbologna/docker-bitlbee)
-[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/mbologna/docker-bitlbee/ci.yml?branch=main)](https://github.com/mbologna/docker-bitlbee/actions)
-[![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/docker-bitlbee/latest)](https://hub.docker.com/r/mbologna/docker-bitlbee)
-[![License](https://img.shields.io/github/license/mbologna/docker-bitlbee)](LICENSE)
+[![Docker Pulls](https://img.shields.io/docker/pulls/mbologna/bitlbee)](https://hub.docker.com/r/mbologna/bitlbee)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/mbologna/bitlbee-container/ci.yml?branch=main)](https://github.com/mbologna/bitlbee-container/actions)
+[![Docker Image Size](https://img.shields.io/docker/image-size/mbologna/bitlbee/latest)](https://hub.docker.com/r/mbologna/bitlbee)
+[![License](https://img.shields.io/github/license/mbologna/bitlbee-container)](LICENSE)
+
+> **Renamed on 2026-11-11.** This repository was `docker-bitlbee` and the image
+> was `mbologna/docker-bitlbee`; pull `mbologna/bitlbee` (or
+> `ghcr.io/mbologna/bitlbee`) instead. The old image name gets the same builds
+> until 2027-05-11 and then stops updating. Release tags published before the
+> rename exist only under the old name.
 
 A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in: the container only listens on port **6697** (BitlBee) and port **6698** (Matrix), both IRC over TLS; plaintext is never exposed.
 
@@ -38,7 +44,7 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 ## Versioning
 
 The image has its own version, separate from BitlBee's. A tag `vX.Y.Z` (image
-`mbologna/docker-bitlbee:X.Y.Z`) identifies a build of this repository: a new
+`mbologna/bitlbee:X.Y.Z`) identifies a build of this repository: a new
 patch release is cut automatically whenever the weekly rebuild produces a
 different image, for example because of a base-image or plugin update.
 
@@ -48,7 +54,7 @@ number counted rebuilds. Releases from `v4.0.0` on use the image's own version.
 The bundled component versions are recorded as image labels:
 
 ```bash
-docker inspect -f '{{json .Config.Labels}}' mbologna/docker-bitlbee:<tag>
+docker inspect -f '{{json .Config.Labels}}' mbologna/bitlbee:<tag>
 ```
 
 Components with no usable release tags (tdlib-purple, matrix2051 and the
@@ -81,7 +87,7 @@ docker run -d \
   -p 6697:6697 \
   -p 6698:6698 \
   -v bitlbee-data:/var/lib/bitlbee \
-  mbologna/docker-bitlbee:latest
+  mbologna/bitlbee:latest
 ```
 
 A self-signed TLS certificate is generated automatically on first run and stored in the persistent volume. Replace `/var/lib/bitlbee/ssl/bitlbee.pem` with your own certificate if needed.
@@ -90,8 +96,8 @@ A self-signed TLS certificate is generated automatically on first run and stored
 
 ```bash
 # Clone repository
-git clone https://github.com/mbologna/docker-bitlbee.git
-cd docker-bitlbee
+git clone https://github.com/mbologna/bitlbee-container.git
+cd bitlbee-container
 
 # Configure environment
 cp .env.example .env
@@ -307,4 +313,4 @@ Once linked, the bridge invites you to a Matrix room for each Facebook chat. Acc
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=mbologna/docker-bitlbee&type=date&legend=top-left)](https://www.star-history.com/#mbologna/docker-bitlbee&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=mbologna/bitlbee-container&type=date&legend=top-left)](https://www.star-history.com/#mbologna/bitlbee-container&type=date&legend=top-left)

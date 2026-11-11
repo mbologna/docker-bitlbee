@@ -22,5 +22,5 @@ labels:
 # You can add patches, replicas, or image overrides here
 # For example, to change the image tag:
 # images:
-#   - name: docker.io/mbologna/docker-bitlbee
+#   - name: docker.io/mbologna/bitlbee
 #     newTag: v1.0.0

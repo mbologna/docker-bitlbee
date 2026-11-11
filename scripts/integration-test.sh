@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE="${IMAGE_REF:-${DOCKER_USERNAME}/docker-bitlbee:latest}"
+IMAGE="${IMAGE_REF:-${DOCKER_USERNAME}/bitlbee:latest}"
 
 docker pull "$IMAGE"
 
@@ -178,7 +178,7 @@ echo "=== Restricted-capability run (mirrors k8s/deployment.yaml securityContext
 # s6-applyuidgid to drop each service to uid 1000). This run reproduces that
 # exact profile so a regression here — e.g. a future s6-rc service needing a
 # capability we don't grant — fails CI instead of only showing up at deploy
-# time (see https://github.com/mbologna/docker-bitlbee/pull/88).
+# time (see https://github.com/mbologna/bitlbee-container/pull/88).
 docker run -d --name bitlbee-test-restricted \
   --cap-drop=ALL --cap-add=SETUID --cap-add=SETGID \
   -e MATRIX_REGISTRATION_TOKEN=ci-test-token-restricted \
