@@ -5,8 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile
       cache_from:
-        - docker.io/mbologna/docker-bitlbee:latest
-    image: docker.io/mbologna/docker-bitlbee:latest
+        - docker.io/mbologna/bitlbee:latest
+    image: docker.io/mbologna/bitlbee:latest
     container_name: bitlbee
     restart: unless-stopped
 

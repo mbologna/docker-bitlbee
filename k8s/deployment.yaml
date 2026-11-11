@@ -34,7 +34,7 @@ spec:
 
       containers:
         - name: bitlbee
-          image: docker.io/mbologna/docker-bitlbee:latest
+          image: docker.io/mbologna/bitlbee:latest
           imagePullPolicy: Always
 
           ports:
