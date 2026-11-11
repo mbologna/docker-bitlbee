@@ -7,9 +7,9 @@
 
 > **Renamed on 2026-11-11.** This repository was `docker-bitlbee` and the image
 > was `mbologna/docker-bitlbee`; pull `mbologna/bitlbee` (or
-> `ghcr.io/mbologna/bitlbee`) instead. The old image name gets the same builds
-> until 2027-05-11 and then stops updating. Release tags published before the
-> rename exist only under the old name.
+> `ghcr.io/mbologna/bitlbee`) instead. The old image name keeps getting the same
+> builds, so nothing breaks if you stay on it. Release tags published before
+> the rename exist only under the old name.
 
 A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in: the container only listens on port **6697** (BitlBee) and port **6698** (Matrix), both IRC over TLS; plaintext is never exposed.
 
