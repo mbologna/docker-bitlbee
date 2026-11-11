@@ -9,7 +9,9 @@
 > was `mbologna/docker-bitlbee`; pull `mbologna/bitlbee` (or
 > `ghcr.io/mbologna/bitlbee`) instead. The old image name keeps getting the same
 > builds, so nothing breaks if you stay on it. Release tags published before
-> the rename exist only under the old name.
+> the rename exist only under the old name. The component version labels moved
+> from `io.github.mbologna.docker-bitlbee.*` to
+> `io.github.mbologna.bitlbee-container.*` in the release after 5.1.0.
 
 A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protocol support via plugins. TLS is built in: the container only listens on port **6697** (BitlBee) and port **6698** (Matrix), both IRC over TLS; plaintext is never exposed.
 
