@@ -18,7 +18,10 @@
 # applies: these updates are reviewed by hand, in one weekly PR (renovate.json).
 # renovate: datasource=git-refs depName=BenWiederhake/tdlib-purple packageName=https://github.com/BenWiederhake/tdlib-purple currentValue=master
 ARG TDLIB_PURPLE_VERSION=43e6cc2f14ccd08171b1515f6216f4bbf84eed80
+# Not tracked by Renovate (no release since 3.6): the tarball is checked
+# against this SHA-256. Bump both together.
 ARG BITLBEE_VERSION=3.6
+ARG BITLBEE_SHA256=9f15de46f29b46bf1e39fc50bdf4515e71b17f551f3955094c5da792d962107e
 # renovate: datasource=github-releases depName=just-containers/s6-overlay
 ARG S6_OVERLAY_VERSION=3.2.3.0
 # Matrix homeserver. tuwunel is the successor of conduwuit (archived at 0.4.6) and
@@ -167,6 +170,7 @@ RUN grep -q '^      :inet6,$' lib/irc_server.ex && \
 FROM --platform=$BUILDPLATFORM buildpack-deps:stable-scm@sha256:4f34e1d673fdb65371de9f88bdd32c4e30152fe692b35604aef5c0b3c0e6da10 AS builder
 
 ARG BITLBEE_VERSION
+ARG BITLBEE_SHA256
 ARG S6_OVERLAY_VERSION
 ARG TUWUNEL_VERSION
 ARG MAUTRIX_META_VERSION
@@ -203,8 +207,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     libmarkdown2-dev libsqlite3-dev \
     # Cross-compilation toolchain (used when building for arm64 on amd64 runners)
     gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
-    # Utilities
-    netcat-traditional curl ca-certificates golang gettext sudo zstd
+    # Utilities (jq reads the release digest the tuwunel download is checked against)
+    netcat-traditional curl ca-certificates golang gettext sudo zstd jq
 
 # Fetch all sources in parallel where possible. fetch_commit DIR URL SHA
 # checks out one pinned commit (git clone --branch takes no SHA).
@@ -227,7 +231,8 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     for p in $pids; do wait "$p" || exit 1; done
 
 # Build BitlBee
-RUN tar xf bitlbee.tar.gz
+RUN echo "${BITLBEE_SHA256}  bitlbee.tar.gz" | sha256sum -c - && \
+    tar xf bitlbee.tar.gz
 WORKDIR /build/bitlbee-${BITLBEE_VERSION}
 RUN LDFLAGS="-lgcrypt" ./configure \
       --jabber=1 \
@@ -241,18 +246,34 @@ RUN LDFLAGS="-lgcrypt" ./configure \
 
 # Download tuwunel (Matrix homeserver) and mautrix-meta (Facebook bridge).
 # tuwunel ships zstd-compressed static binaries; x86_64-v1 runs on any x86_64 CPU.
+# Every download is checked before use. Renovate bumps these versions, and a
+# checksum pinned here would go stale with each bump, so each file is checked
+# against what its release publishes: mautrix-meta's sha256sums.txt, and for
+# tuwunel, which publishes no checksum file, the SHA-256 GitHub records for
+# the release asset (release API).
+WORKDIR /build/dl
 RUN case "${TARGETARCH}" in \
       amd64) TUWUNEL_ARCH="x86_64-v1" ; MM_ARCH="amd64" ;; \
       arm64) TUWUNEL_ARCH="aarch64-v8" ; MM_ARCH="arm64"  ;; \
       *) echo "Unsupported arch: ${TARGETARCH}"; exit 1   ;; \
     esac && \
-    curl -fsSL \
-      "https://github.com/matrix-construct/tuwunel/releases/download/v${TUWUNEL_VERSION}/v${TUWUNEL_VERSION}-release-all-${TUWUNEL_ARCH}-linux-gnu-tuwunel.zst" \
-      | zstd -d -o /usr/local/bin/tuwunel && \
+    tuwunel_asset="v${TUWUNEL_VERSION}-release-all-${TUWUNEL_ARCH}-linux-gnu-tuwunel.zst" && \
+    curl -fsSL --retry 3 -o "${tuwunel_asset}" \
+      "https://github.com/matrix-construct/tuwunel/releases/download/v${TUWUNEL_VERSION}/${tuwunel_asset}" && \
+    tuwunel_sha256=$(curl -fsSL --retry 3 -H "Accept: application/vnd.github+json" \
+        "https://api.github.com/repos/matrix-construct/tuwunel/releases/tags/v${TUWUNEL_VERSION}" \
+      | jq -er --arg name "${tuwunel_asset}" \
+          '.assets[] | select(.name == $name) | .digest | select(startswith("sha256:")) | ltrimstr("sha256:")') && \
+    echo "${tuwunel_sha256}  ${tuwunel_asset}" | sha256sum -c - && \
+    zstd -q -d "${tuwunel_asset}" -o /usr/local/bin/tuwunel && \
     chmod +x /usr/local/bin/tuwunel && \
-    curl -fsSL -o /usr/local/bin/mautrix-meta \
+    curl -fsSL --retry 3 -O \
       "https://github.com/mautrix/meta/releases/download/v${MAUTRIX_META_VERSION}/mautrix-meta-${MM_ARCH}" && \
-    chmod +x /usr/local/bin/mautrix-meta
+    curl -fsSL --retry 3 -o mautrix-meta.sha256sums \
+      "https://github.com/mautrix/meta/releases/download/v${MAUTRIX_META_VERSION}/sha256sums.txt" && \
+    grep -E "  mautrix-meta-${MM_ARCH}\$" mautrix-meta.sha256sums | sha256sum -c - && \
+    install -m 0755 "mautrix-meta-${MM_ARCH}" /usr/local/bin/mautrix-meta && \
+    rm -rf /build/dl
 
 WORKDIR /build/purple-discord
 RUN make -j"$(nproc)" && make install
@@ -286,18 +307,31 @@ RUN cmake -S purple-whatsmeow -B whatsapp-build -DCMAKE_BUILD_TYPE=Release && \
 
 RUN ldconfig && libtool --finish /usr/local/lib/bitlbee
 
+# The runtime stage copies /usr/local wholesale: drop what only a build reads
+# (pkg-config files, headers, libtool archives; BitlBee loads plugins by their
+# .so) and the man pages.
+RUN rm -rf /usr/local/lib/pkgconfig /usr/local/include/* /usr/local/share/man && \
+    find /usr/local/lib -name '*.la' -delete
+
 # Download and stage s6-overlay (noarch + arch-specific) into /s6-install.
 # Extracted here in the builder so the runtime stage doesn't need xz-utils.
+# Each tarball is checked against the .sha256 file its release publishes.
+WORKDIR /build/s6
 RUN case "${TARGETARCH}" in \
       amd64) S6_ARCH="x86_64"  ;; \
       arm64) S6_ARCH="aarch64" ;; \
       *) echo "Unsupported arch: ${TARGETARCH}"; exit 1 ;; \
     esac && \
+    for f in s6-overlay-noarch.tar.xz "s6-overlay-${S6_ARCH}.tar.xz"; do \
+      url="https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/${f}" && \
+      curl -fsSL --retry 3 -o "${f}" "${url}" && \
+      curl -fsSL --retry 3 -o "${f}.sha256" "${url}.sha256" && \
+      sha256sum -c "${f}.sha256" || exit 1; \
+    done && \
     mkdir /s6-install && \
-    curl -fsSL "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz" \
-      | tar -C /s6-install -Jxp && \
-    curl -fsSL "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz" \
-      | tar -C /s6-install -Jxp
+    tar -C /s6-install -Jxpf s6-overlay-noarch.tar.xz && \
+    tar -C /s6-install -Jxpf "s6-overlay-${S6_ARCH}.tar.xz" && \
+    rm -rf /build/s6
 
 ############################
 # Runtime stage

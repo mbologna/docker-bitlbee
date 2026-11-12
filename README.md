@@ -18,7 +18,7 @@ A Docker container for [BitlBee](https://www.bitlbee.org/) with extensive protoc
 ## Technical Features
 
 - 🏗️ **Multi-architecture support:** `linux/amd64`, `linux/arm64`
-- 🔒 **Security-hardened:** Non-root user, minimal capabilities, security contexts
+- 🔒 **Security-hardened:** every service runs as uid 1000, minimal capabilities, security contexts. The s6-overlay supervisor (PID 1) starts as root by default and drops to uid 1000 for each service; run the container with `--user` (as below) to start it unprivileged. Downloaded binaries and tarballs are checksum-verified at build time.
 - 🔐 **TLS-only:** stunnel terminates TLS inside the container; BitlBee and matrix2051 bind loopback-only
 - 📊 **Health checks:** Built-in monitoring with liveness/readiness probes
 - 📦 **SBOM generation:** Software Bill of Materials for supply chain security
