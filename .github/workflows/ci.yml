@@ -31,7 +31,7 @@ jobs:
       attestations: write
       security-events: write
       actions: write
-    uses: mbologna/.github/.github/workflows/docker-ci.yml@ee5bcf8cd73154eaccd48e386919f73d2dd832e2 # main
+    uses: mbologna/.github/.github/workflows/docker-ci.yml@8afa698d74ff2cbfdb96ee637825753be6a15aa3 # main
     with:
       image_name: bitlbee
       # Only release tags publish the image (auto-release dispatches
@@ -43,6 +43,11 @@ jobs:
       legacy_image_names: docker-bitlbee
       yamllint_paths: docker-compose.yml .github/workflows/
       enable_integration_test: true
+      # Image policy check: s6-overlay runs as root as PID 1 to supervise the
+      # services, and each service drops to UID 1000 (s6-setuidgid).
+      allow_root: >-
+        s6-overlay runs as root as PID 1 to supervise the services; each
+        service runs as UID 1000 (s6-setuidgid)
       # auto-release runs inside docker-ci: Monday's schedule releases with
       # this strategy, a push to main only a CVE fix.
       release_strategy: conventional
