@@ -3,10 +3,10 @@
   "extends": ["github>mbologna/.github//renovate-config.json"],
   "packageRules": [
     {
-      "description": "Plugins pinned to a branch commit (git-refs): the shared preset holds every git-refs update for review; here they come in one PR a week, opened on Monday or Tuesday like the preset's weekly groups, instead of one per upstream commit.",
+      "description": "Plugins pinned to a branch commit (git-refs): the shared preset holds every git-refs update for review; here they come in one PR a week, opened on Saturday or Sunday like the preset's weekly groups, instead of one per upstream commit.",
       "matchDatasources": ["git-refs"],
       "groupName": "plugin branch commits",
-      "schedule": ["* * * * 1,2"]
+      "schedule": ["* * * * 0,6"]
     }
   ],
   "customManagers": [
